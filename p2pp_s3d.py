@@ -52,9 +52,9 @@ if __name__ == "__main__":
     if number_of_args == 1:
         platformD = platform.system()
         if platformD == 'Darwin':
-            comment("{}/p2pp_s3d.command".format(os.path.dirname(sys.argv[0])))
+            comment('{}/p2pp_s3d.command "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
         elif platformD == 'Windows':
-            comment("{}/\\p2pp_s3d.bat".format(os.path.dirname(sys.argv[0])))
+            comment('{}/\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
         pass
 
     if number_of_args == 2:
