@@ -5,7 +5,7 @@ chmod 755 $DIRECTORY/p2pp_s3d.py
 
 if [ $# -eq -0 ]
 then
-     $DIRECTORY/p2pp_s3d.py
+     python $DIRECTORY/p2pp_s3d.py
 else
-     $DIRECTORY/p2pp_s3d.py "$1"
+     python $DIRECTORY/p2pp_s3d.py "$1"
 fi

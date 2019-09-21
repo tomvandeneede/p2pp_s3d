@@ -38,7 +38,7 @@ def main(filename):
     v.filename = filename
     gui.setfilename(filename)
     processing.process_file()
-    gui.close_button_enable()
+
 
 
 def usage():
@@ -65,3 +65,4 @@ if __name__ == "__main__":
         error("Invalid usage of p2pp_s3d")
         usage()
 
+    gui.close_button_enable()
