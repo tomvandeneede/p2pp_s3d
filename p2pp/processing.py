@@ -296,7 +296,7 @@ def process_gcode():
         toolchange = tmp.is_toolchange()
         if toolchange in [0,1,2,3]:
             if not v.toolsused[ toolchange ] :
-                if v.filament_type[toolchange] == None:
+                if not v.filament_type[toolchange]:
                     error("TOOL_{} setting command missing - output file cannot be created".format(toolchange))
             v.toolsused[ toolchange] = True
 

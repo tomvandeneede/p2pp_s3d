@@ -190,7 +190,8 @@ progressbar.grid(row=3, column=2,  sticky='ew')
 
 
 # Log frame
-logframe = tkinter.Frame(mainwindow, border=3, relief="sunken")
+logframe\
+    = tkinter.Frame(mainwindow, border=3, relief="sunken")
 logframe.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 
 loglistscroll = tkinter.Scrollbar(logframe, orient=tkinter.VERTICAL)
