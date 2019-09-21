@@ -50,7 +50,7 @@ if __name__ == "__main__":
     number_of_args = len(sys.argv)
 
     if number_of_args == 2:
-        arglen = len(sys.argv[0])
+        arglen = len(sys.argv[1])
     else:
         arglen = 0
 
