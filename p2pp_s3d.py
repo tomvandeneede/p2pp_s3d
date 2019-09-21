@@ -54,7 +54,11 @@ if __name__ == "__main__":
         if platformD == 'Darwin':
             comment('{}/p2pp_s3d.command "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
         elif platformD == 'Windows':
-            comment('{}/\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
+            if " " in os.path.dirname(sys.argv[0]):
+                warning("Your path contains spaces!!!")
+                comment('"{}/\\p2pp_s3d.bat" "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
+            else:
+                comment('{}/\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
         pass
 
     if number_of_args == 2:
