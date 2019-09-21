@@ -13,6 +13,13 @@ from p2pp.logging import error, warning, comment
 from p2pp.formatnumbers import hexify_short, hexify_float, hexify_long, hexify_byte
 import p2pp.gui as gui
 
+
+def check_tool defs():
+    for i in range(4):
+        if v.toolsused[i] and not v.filament_type[i]:
+            return False
+    return True
+
 def omegaheader():
     header = []
 
@@ -68,27 +75,29 @@ def omegaheader():
     if not "DEFAULT" in v.algorithm.keys():
         v.algorithm['DEFAULT'] = (0,0,0)
 
+    if check_tooldefs():
 
-    for algo in v.algooverview:
+        for algo in v.algooverview:
 
-        fils = algo.split("_")
+            fils = algo.split("_")
 
-        if algo in v.algorithm.keys():
-            info = v.algorithm[algo]
-        else:
-            info = v.algorithm["DEFAULT"]
-        process = "{} {} {}".format(hexify_short(int(info[0])),
-                          hexify_short(int(info[1])),
-                          hexify_short(int(info[2]))
-                          )
+            if algo in v.algorithm.keys():
+                info = v.algorithm[algo]
+            else:
+                info = v.algorithm["DEFAULT"]
+            process = "{} {} {}".format(hexify_short(int(info[0])),
+                              hexify_short(int(info[1])),
+                              hexify_short(int(info[2]))
+                              )
 
-        header.append("O32 D{}{} {}\n".format(materials[fils[0]],materials[fils[1]],process))
-        header.append("\n")
-        header.append("O1 D{} {}\n"
-                      .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end + v.spliceoffset))))
-        header.append("\n")
-        header.append(";--- END OF P2 HEADER ---\n")
-        header.append("\n")
+            header.append("O32 D{}{} {}\n".format(materials[fils[0]],materials[fils[1]],process))
+
+    header.append("\n")
+    header.append("O1 D{} {}\n"
+                  .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end + v.spliceoffset))))
+    header.append("\n")
+    header.append(";--- END OF P2 HEADER ---\n")
+    header.append("\n")
 
 
     return header
@@ -286,7 +295,11 @@ def process_gcode():
 
         toolchange = tmp.is_toolchange()
         if toolchange in [0,1,2,3]:
+            if not v.toolsused[ toolchange ] :
+                if v.filament_type[toolchange] == None:
+                    error("TOOL_{} setting command missing - output file cannot be created".format(toolchange))
             v.toolsused[ toolchange] = True
+
 
 
 
@@ -341,7 +354,18 @@ def save_code():
 
     header = omegaheader()
     comment(" number of lines: {}".format(len(header)+len(v.output_code)))
-    opf = open(output_file, "w")
+
+    try:
+        opf = open(output_file,"w",  encoding='utf-8')
+    except TypeError:
+        try:
+            opf = open(output_file, "w")
+        except IOError:
+            error ("Could not open output file {}".format(output_file))
+            return
+    except IOError:
+        error("Could not read open output {}".format(output_file))
+        return
     opf.writelines(header)
     opf.writelines(v.output_code)
     opf.close()
