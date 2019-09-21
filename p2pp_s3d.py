@@ -67,7 +67,7 @@ if __name__ == "__main__":
         while i < number_of_args:
             str += sys.argv[i]
             i += 1
-        error("{} Invalid usage:  {}".format(number_of_args, str))
+        error("{} Invalid usage: {}".format(number_of_args, str))
         usage()
 
     gui.close_button_enable()
