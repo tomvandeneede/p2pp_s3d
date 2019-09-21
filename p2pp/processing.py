@@ -14,7 +14,7 @@ from p2pp.formatnumbers import hexify_short, hexify_float, hexify_long, hexify_b
 import p2pp.gui as gui
 
 
-def check_tool defs():
+def check_tooldefs():
     for i in range(4):
         if v.toolsused[i] and not v.filament_type[i]:
             return False
