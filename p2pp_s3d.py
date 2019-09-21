@@ -15,8 +15,6 @@ import p2pp.processing as processing
 from p2pp.logging import error, warning, comment
 
 
-
-
 def main(filename):
 
     try:
@@ -45,11 +43,13 @@ def usage():
     comment("Use:  p2pp_s3d [filename]")
 
 
+
 if __name__ == "__main__":
 
     number_of_args = len(sys.argv)
 
     if number_of_args == 1:
+
         platformD = platform.system()
         if platformD == 'Darwin':
             comment('{}/p2pp_s3d.command "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
@@ -59,15 +59,12 @@ if __name__ == "__main__":
                 comment('"{}\\p2pp_s3d.bat" "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
             else:
                 comment('{}\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
+
     elif number_of_args == 2:
-        main ( filename = sys.argv[1] )
+        main ( filename = sys.argv[1])
+
     else:
-        str = "p2pp_s3d "
-        i = 1
-        while i < number_of_args:
-            str += sys.argv[i]
-            i += 1
-        error("{} Invalid usage: {}".format(number_of_args, str))
+        error("[err {}] - Invalid usage:".format(number_of_args))
         usage()
 
     gui.close_button_enable()
