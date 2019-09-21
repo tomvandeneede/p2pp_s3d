@@ -45,12 +45,23 @@ def omegaheader():
     header.append("; P2 Number of splicing algorithms = {}\n".format(len(v.algooverview)))
     header.append('O28 ' + hexify_short(len(v.algooverview)) + "\n")
 
+
+    previous_change = 0
     header.append('O29 ' + hexify_short(0) + "\n")
     header.append("\n; P2 Tool change information\n")
     for i in range(len(v.toolchangeinfo)):
+        nextpos = v.toolchangeinfo[i]["E"]+v.spliceoffset
+        if previous_change==0 and nextpos < 100:
+            error("First splice is {}mm too short.  Try adding brim or skirt".format(100-nextpos))
+        else:
+            splicelength = nextpos - previous_change
+            if splicelength < 70:
+                error("Short splice {} is {}mm too short. Try increasing purge".format(i+1, 70-splicelength))
+        previous_change = nextpos
+
+
         header.append("O30 D{:0>1d} {}\n".format(v.toolchangeinfo[i]["Tool"],
-                                                 hexify_float(v.toolchangeinfo[i]["E"]+v.spliceoffset)
-                                                 ))
+                                                 hexify_float(nextpos)))
 
     header.append("\n; P2 Splicing algorithms\n")
     if not "DEFAULT" in v.algorithm.keys():
