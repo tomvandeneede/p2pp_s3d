@@ -54,6 +54,7 @@ if __name__ == "__main__":
     else:
         arglen = 0
 
+
     if number_of_args == 1 or arglen <=2:
         platformD = platform.system()
         if platformD == 'Darwin':
@@ -64,20 +65,16 @@ if __name__ == "__main__":
                 comment('"{}\\p2pp_s3d.bat" "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
             else:
                 comment('{}\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
-
-    if number_of_args == 2:
+    elif number_of_args == 2:
         main ( filename = sys.argv[1] )
-
-
-
-    if number_of_args > 2:
+    else
         str = "p2pp_s3d "
         i = 1
         while i < number_of_args:
             str += sys.argv[i]
             i += 1
 
-        error("Invalid usage:  {}".format(str))
+        error("{} Invalid usage:  {}".format(number_of_args, str))
         usage()
 
     gui.close_button_enable()
