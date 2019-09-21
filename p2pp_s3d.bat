@@ -8,6 +8,6 @@ REM pause
 
 REM Edit the line below if you  need to change the python path.
 
-c:\python27\python.exe "%MYPATH%\p2pp_s3d.py" "%1"
+c:\python27\python.exe "%MYPATH%\p2pp_s3d.py" %1
 
 pause

@@ -49,13 +49,7 @@ if __name__ == "__main__":
 
     number_of_args = len(sys.argv)
 
-    if number_of_args == 2:
-        arglen = len(sys.argv[1])
-    else:
-        arglen = 0
-
-
-    if number_of_args == 1 or arglen <=2:
+    if number_of_args == 1:
         platformD = platform.system()
         if platformD == 'Darwin':
             comment('{}/p2pp_s3d.command "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
@@ -73,7 +67,6 @@ if __name__ == "__main__":
         while i < number_of_args:
             str += sys.argv[i]
             i += 1
-
         error("{} Invalid usage:  {}".format(number_of_args, str))
         usage()
 
