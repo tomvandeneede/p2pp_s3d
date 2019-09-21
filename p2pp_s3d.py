@@ -64,14 +64,20 @@ if __name__ == "__main__":
                 comment('"{}\\p2pp_s3d.bat" "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
             else:
                 comment('{}\\p2pp_s3d.bat "[output_filepath]"'.format(os.path.dirname(sys.argv[0])))
-        pass
 
     if number_of_args == 2:
         main ( filename = sys.argv[1] )
 
 
+
     if number_of_args > 2:
-        error("Invalid usage of p2pp_s3d")
+        str = "p2pp_s3d "
+        i = 1
+        while i < number_of_args:
+            str += sys.argv[i]
+            i += 1
+
+        error("Invalid usage:  {}".format(str))
         usage()
 
     gui.close_button_enable()
