@@ -134,10 +134,10 @@ mainwindow = tkinter.Tk()
 mainwindow.title("Palette2 Post Processing for Simplify-3D")
 center(mainwindow, 800, 600)
 
-if platformD == 'Windows':
-    logo_image = os.path.dirname(sys.argv[0]) + '\\favicon.ico'
-    mainwindow.iconbitmap(logo_image)
-    mainwindow.update()
+# if platformD == 'Windows':
+#     logo_image = os.path.dirname(sys.argv[0]) + '\\favicon.ico'
+#     mainwindow.iconbitmap(logo_image)
+#     mainwindow.update()
 
 mainwindow['padx'] = 10
 mainwindow['pady'] = 10
