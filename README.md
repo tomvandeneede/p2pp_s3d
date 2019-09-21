@@ -123,4 +123,13 @@ The actual purge length is the average of the unloading lengt of the old filamen
   ![splice offset](https://github.com/tomvandeneede/p2pp/blob/master/docs/spliceoffset.png)
   
   
+## Make a donation...
+
+If you like this software and want to support its development you can make a small donation to support me in maintaining and expanding the capabilities p2pp for simplify 3D.
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=t.vandeneede@pandora.be&lc=EU&item_name=Donation+to+P2PP+Developer&no_note=0&cn=&currency_code=EUR&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted)
+
+
+
+## **Good luck & happy printing !!!**
   
