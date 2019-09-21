@@ -68,6 +68,7 @@ def omegaheader():
     if not "DEFAULT" in v.algorithm.keys():
         v.algorithm['DEFAULT'] = (0,0,0)
 
+
     for algo in v.algooverview:
 
         fils = algo.split("_")
@@ -80,6 +81,7 @@ def omegaheader():
                           hexify_short(int(info[1])),
                           hexify_short(int(info[2]))
                           )
+
         header.append("O32 D{}{} {}\n".format(materials[fils[0]],materials[fils[1]],process))
         header.append("\n")
         header.append("O1 D{} {}\n"
@@ -271,10 +273,11 @@ def process_gcode():
         # afterwards this code is removed
         #########################################################
         if v.mode == MODE_PURGE:
-            v.purge_minx = min(v.purge_minx, tmp.get_parameter("X", 9999))
-            v.purge_maxx = max(v.purge_maxx, tmp.get_parameter("X", -9999))
-            v.purge_miny = min(v.purge_miny, tmp.get_parameter("Y", 9999))
-            v.purge_maxy = max(v.purge_maxy, tmp.get_parameter("Y", -9999))
+            if tmp.E:
+                v.purge_minx = min(v.purge_minx, tmp.get_parameter("X", 9999))
+                v.purge_maxx = max(v.purge_maxx, tmp.get_parameter("X", -9999))
+                v.purge_miny = min(v.purge_miny, tmp.get_parameter("Y", 9999))
+                v.purge_maxy = max(v.purge_maxy, tmp.get_parameter("Y", -9999))
         else:
             v.gcodes.append(tmp)
 
