@@ -14,6 +14,8 @@ layer_toolchange_count= []
 layer_purge_volume    = []
 algooverview = set([])
 
+mindelta = 999
+maxdelta = -999
 
 lastping = 0
 

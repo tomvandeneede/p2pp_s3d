@@ -310,7 +310,7 @@ def process_gcode():
     comment("Tool load info: " + v.loadinfo.__str__())
     comment("Algorithms:" + v.algorithm.__str__())
 
-    purgetower.purge_create_layers(v.purge_minx - 5, v.purge_miny - 5, v.purge_maxx - v.purge_minx + 10, v.purge_maxy - v.purge_miny + 10)
+    purgetower.purge_create_layers(v.purge_minx+1 , v.purge_miny+1 , v.purge_maxx - v.purge_minx +2, v.purge_maxy - v.purge_miny +2)
 
     lineidx = 0
     linecount = len(v.gcodes)
@@ -344,6 +344,12 @@ def process_gcode():
         g.issue_command()
 
     process_tool_change(None)
+
+    if v.maxdelta >0.3 or v.mindelta < -0.3:
+        warning("Tower hight deviates {:.2f}mm above and {:.2f}mm below print level".format(-v.mindelta, v.maxdelta))
+        warning("Make sure to keep enough distance between tower and object to avoid collisions")
+
+
     gui.completed()
 
 def save_code():
@@ -376,3 +382,4 @@ def process_file():
     create_regex_objects()
     process_gcode()
     save_code()
+

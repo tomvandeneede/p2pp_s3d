@@ -214,14 +214,23 @@ def purge_generate_sequence(purgelength):
 
     actual = 0
 
+    pdelta = v.current_position_z - (v.purgelayer + 1) * v.layer_height
+
     v.output_code.append("; --------------------------------------------------\n")
     v.output_code.append("; --- P2PP WIPE SEQUENCE START  FOR {:5.2f}mm\n".format(purgelength))
     v.output_code.append(
-        "; --- DELTA = {:.2f}\n".format(v.current_position_z - (v.purgelayer + 1) * v.layer_height))
+        "; --- DELTA = {:.2f}\n".format(pdelta))
+
+    v.maxdelta = max(v.maxdelta , pdelta)
+    v.mindelta = min(v.mindelta , pdelta)
 
     if last_posx and last_posy:
-        v.output_code.append("G1 X{} Y{}\n".format(last_posx, last_posy))
-        v.output_code.append("G1 Z{:.2f} F10800\n".format((v.purgelayer + 1) * v.layer_height))
+        if pdelta< 0:
+            v.output_code.append("G1 Z{:.2f} F10800\n".format((v.purgelayer + 1) * v.layer_height))
+            v.output_code.append("G1 X{} Y{}\n".format(last_posx, last_posy))
+        else:
+            v.output_code.append("G1 X{} Y{}\n".format(last_posx, last_posy))
+            v.output_code.append("G1 Z{:.2f} F10800\n".format((v.purgelayer + 1) * v.layer_height))
 
     v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 
@@ -237,8 +246,12 @@ def purge_generate_sequence(purgelength):
 
     # return to print height
     v.output_code.append("; -------------------------------------\n")
-    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z))
-    v.output_code.append("G0 X{} Y{}\n".format(keep_x, keep_y))
+    if pdelta < 0:
+        v.output_code.append("G0 X{} Y{}\n".format(keep_x, keep_y))
+        v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z))
+    else:
+        v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z))
+        v.output_code.append("G0 X{} Y{}\n".format(keep_x, keep_y))
     v.output_code.append("; --- P2PP WIPE SEQUENCE END DONE\n")
     v.output_code.append("; -------------------------------------\n")
 
