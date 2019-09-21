@@ -11,6 +11,7 @@ import re
 import p2pp.purgetower as purgetower
 from p2pp.logging import error, warning, comment
 from p2pp.formatnumbers import hexify_short, hexify_float, hexify_long, hexify_byte
+import p2pp.gui as gui
 
 def omegaheader():
     header = []
@@ -113,6 +114,7 @@ def p2pp_command( command , parameter):
 
     if command == "PRINTERPROFILE":
         v.printerid = parameter
+        gui.set_printer_id(v.printerid)
 
     if command == "EXTRAENDFILAMENT":
         v.extra_extrusion_at_end = float(parameter)
@@ -248,7 +250,12 @@ def process_tool_change(gc):
 
 def process_gcode():
 
+    gui.comment("Processing "+v.filename)
+    linecount = len(v.rawfile)
+    lineidx = 0
     for line in v.rawfile:
+        lineidx +=1
+        gui.setprogress(int(50 * lineidx / linecount))
 
         # skip fully empty lines
         if len(line) == 0:
@@ -277,17 +284,20 @@ def process_gcode():
 
 
 
-    print('Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
-    print('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
-    print("filament Info: ", v.filament_type)
-    print("Tool unload info: ", v.unloadinfo)
-    print("Tool load info: ", v.loadinfo)
-    print("Algorithms:", v.algorithm)
+    comment('Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    comment('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
+    comment("filament Info: " + v.filament_type.__str__())
+    comment("Tool unload info: " + v.unloadinfo.__str__())
+    comment("Tool load info: " + v.loadinfo.__str__())
+    comment("Algorithms:" + v.algorithm.__str__())
 
     purgetower.purge_create_layers(v.purge_minx - 5, v.purge_miny - 5, v.purge_maxx - v.purge_minx + 10, v.purge_maxy - v.purge_miny + 10)
 
+    lineidx = 0
+    linecount = len(v.gcodes)
     for g in v.gcodes:
-
+        lineidx += 1
+        gui.setprogress(50 + int(50 * lineidx / linecount))
         if g.command in ["M220"]:
             g.move_to_comment("IGNORED COMMAND")
             g.issue_command()
@@ -315,11 +325,16 @@ def process_gcode():
         g.issue_command()
 
     process_tool_change(None)
+    gui.completed()
 
 def save_code():
     output_file = v.filename.replace(".gcode", ".mcf.gcode")
 
+    comment("saving output to "+output_file)
+
+
     header = omegaheader()
+    comment(" number of lines: {}".format(len(header)+len(v.output_code)))
     opf = open(output_file, "w")
     opf.writelines(header)
     opf.writelines(v.output_code)

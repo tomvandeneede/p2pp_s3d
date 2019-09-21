@@ -5,16 +5,12 @@ __license__ = 'GPLv3'
 __maintainer__ = 'Tom Van den Eede'
 __email__ = 't.vandeneede@pandora.be'
 
-import p2pp.gui as gui
+# general version info
+MajorVersion = 0
+MinorVersion = 0
+Build = 1
+
+latest_stable_version = ""
 
 
-def error(text):
-    gui.error(text)
-
-
-def warning(text):
-    gui.warning(text)
-
-
-def comment(text):
-    gui.comment(text)
+Version = "{}.{}.{}".format(MajorVersion, MinorVersion, Build)

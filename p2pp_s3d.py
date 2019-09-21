@@ -9,9 +9,11 @@ __email__ = 't.vandeneede@pandora.be'
 import sys
 import platform
 import os
+import p2pp.gui as gui
 import p2pp.variables as v
 import p2pp.processing as processing
 from p2pp.logging import error, warning, comment
+
 
 
 
@@ -23,10 +25,10 @@ def main(filename):
         try:
             opf = open(filename)
         except IOError:
-            error ("Could not read input file\n'{}".format(filename))
+            error ("Could not read input file {}".format(filename))
             return
     except IOError:
-        error("Could not read input file\n'{}".format(filename))
+        error("Could not read input file {}".format(filename))
         return
 
     v.rawfile = opf.readlines()
@@ -34,8 +36,9 @@ def main(filename):
 
     v.rawfile = [item.strip() for item in v.rawfile]
     v.filename = filename
+    gui.setfilename(filename)
     processing.process_file()
-
+    gui.close_button_enable()
 
 
 def usage():
