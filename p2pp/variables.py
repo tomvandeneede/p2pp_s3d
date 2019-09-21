@@ -12,6 +12,12 @@ toolchangeposition = []
 pingpositions = []
 layer_toolchange_count= []
 layer_purge_volume    = []
+algooverview = set([])
+
+
+lastping = 0
+
+printerid = None
 
 filament_type = [None, None, None, None]
 loadinfo = [80, 80, 80, 80]
@@ -19,16 +25,20 @@ unloadinfo = [80, 80, 80, 80]
 algorithm = {}
 
 
-print_minx=9999
-print_maxx=-9999
-print_miny=9999
-print_maxy=-9999
+extra_extrusion_at_end = 0
+spliceoffset= 20
+
+purge_minx=9999
+purge_maxx=-9999
+purge_miny=9999
+purge_maxy=-9999
 
 bed_min_x = 0
 bed_min_y = 0
 bed_size_x = 0
 bed_size_y = 0
 
+brim_generated = False
 
 pingincrease = 1.03
 pinglength   = 350
@@ -41,7 +51,7 @@ output_code = []
 
 wipe_feedrate = 3000
 purgelayer = 0
-purgelength = 0
+
 
 layer_height = None
 extrusion_width = None
@@ -62,11 +72,16 @@ regex_purge_info = None
 regex_bed_size = None
 regex_bed_origin = None
 
+current_position_x = 0
+current_position_y = 0
 current_position_z = 0
+
 previous_tool = -1
 current_tool = -1
 
-extrusion_multiplier = 0
+extrusion_multiplier = 1.0
 total_extrusion = 0
+
+filename = ""
 
 mode = 0

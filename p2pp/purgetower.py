@@ -9,6 +9,7 @@ __email__ = 'P2PP@pandora.be'
 
 import p2pp.gcode as gcode
 import p2pp.variables as v
+import math
 
 solidlayer = []
 emptylayer = []
@@ -41,7 +42,7 @@ def if_defined(x, y):
 
 
 def filament_volume_to_length(x):
-    return x / (v.filament_diameter[v.current_tool] / 2 * v.filament_diameter[v.current_tool] / 2 * math.pi)
+    return x / (1.75 / 2 * 1.75 / 2 * math.pi)
 
 def calculate_purge(movelength):
     volume = v.extrusion_width * v.layer_height * (abs(movelength) + v.layer_height)
@@ -155,7 +156,7 @@ def _purge_number_of_gcodelines():
         return len(emptylayer)
 
 
-def _purge_update_sequence_index():
+def _purge_update_sequence_index(purgelength):
     global current_purge_form, current_purge_index
 
     current_purge_index = (current_purge_index + 1) % _purge_number_of_gcodelines()
@@ -165,11 +166,12 @@ def _purge_update_sequence_index():
         else:
             current_purge_form = PURGE_SOLID
         v.purgelayer += 1
-        if v.purgelength > 0:
+        if purgelength > 0:
             v.output_code.append("G1 Z{:.2f} F10800\n".format((v.purgelayer + 1) * v.layer_height))
             v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 
 def _purge_get_nextcommand_in_sequence():
+
     if current_purge_form == PURGE_SOLID:
         return solidlayer[current_purge_index]
     else:
@@ -201,24 +203,21 @@ def _purge_generate_tower_brim(x, y, w, h):
     last_brim_y = y
 
 
-def purge_generate_sequence():
+def purge_generate_sequence(purgelength):
     global last_posx, last_posy
 
-    if not v.purgelength > 0:
+    if not purgelength > 0:
         return
 
+    keep_x = v.current_position_x
+    keep_y = v.current_position_y
+
     actual = 0
-    expected = v.purgelength
 
     v.output_code.append("; --------------------------------------------------\n")
-    v.output_code.append("; --- P2PP WIPE SEQUENCE START  FOR {:5.2f}mm\n".format(v.purgelength))
+    v.output_code.append("; --- P2PP WIPE SEQUENCE START  FOR {:5.2f}mm\n".format(purgelength))
     v.output_code.append(
         "; --- DELTA = {:.2f}\n".format(v.current_position_z - (v.purgelayer + 1) * v.layer_height))
-
-    if v.previous_tool != -1:
-        expected_length = v.unloadinfo[v.previous_tool] + v.loadinfo[v.current_tool]
-        if v.purgelength > expected_length:
-            v.purgelength = expected_length
 
     if last_posx and last_posy:
         v.output_code.append("G1 X{} Y{}\n".format(last_posx, last_posy))
@@ -227,23 +226,24 @@ def purge_generate_sequence():
     v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 
     # generate wipe code
-    while v.purgelength > 0:
+    while purgelength > 0:
         next_command = _purge_get_nextcommand_in_sequence()
         last_posx = if_defined(next_command.X, last_posx)
         last_posy = if_defined(next_command.Y, last_posy)
-        v.purgelength -= if_defined(next_command.E, 0)
+        purgelength -= if_defined(next_command.E, 0)
         actual += if_defined(next_command.E, 0)
         next_command.issue_command()
-        _purge_update_sequence_index()
+        _purge_update_sequence_index(purgelength)
 
     # return to print height
     v.output_code.append("; -------------------------------------\n")
     v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z))
+    v.output_code.append("G0 X{} Y{}\n".format(keep_x, keep_y))
     v.output_code.append("; --- P2PP WIPE SEQUENCE END DONE\n")
     v.output_code.append("; -------------------------------------\n")
 
     # if we extruded more we need to account for that in the total count
 
-    correction = (actual - expected) * v.extrusion_multiplier
-    v.total_extrusion += correction
-    v.side_wipe_length = 0
+    return actual
+
+

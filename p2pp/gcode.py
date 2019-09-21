@@ -9,6 +9,7 @@ RELATIVE = True
 ABSOLUTE = False
 
 import p2pp.variables as v
+from p2pp.formatnumbers import hexify_short, hexify_float, hexify_long, hexify_byte
 
 class GCodeCommand:
     command = None
@@ -76,10 +77,10 @@ class GCodeCommand:
         if not c:
             c = ""
 
-        if not self.Comment:
+        if not self.comment:
             co = ""
         else:
-            co = ";" + self.Comment
+            co = ";" + self.comment
 
         return ("{} {} {}".format(c, p, co)).strip() + "\n"
 
@@ -92,7 +93,7 @@ class GCodeCommand:
 
     def move_to_comment(self, text):
         if self.command:
-            self.Comment = "-- P2PP -- removed [{}] - {}".format(text, self)
+            self.comment = "-- P2PP/S3D -- removed [{}] - {}".format(text, self)
 
         self.command = None
         self.parameters.clear()
@@ -106,7 +107,20 @@ class GCodeCommand:
         return defaultvalue
 
     def issue_command(self):
-        pass
+        v.output_code.append(self.__str__())
+        if self.E and self.is_movement_command():
+
+            #### perform ping checks
+            v.total_extrusion += self.E * v.extrusion_multiplier
+            if v.total_extrusion - v.lastping >= v.pinglength:
+                v.pingpositions.append(v.total_extrusion)
+                v.output_code.append(";----------------------------------\n")
+                v.output_code.append("; P2 PING {} COMMAND AT {:.3f}mm\n".format(len(v.pingpositions), v.total_extrusion))
+                v.output_code.append("O31 {}\n".format(hexify_float(v.total_extrusion)))
+                v.output_code.append(";----------------------------------\n")
+                v.lastping = v.total_extrusion
+                v.pinglength *= v.pingincrease
+
 
     def add_comment(self, text):
         if self.comment:

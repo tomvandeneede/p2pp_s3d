@@ -7,6 +7,8 @@ __email__ = 't.vandeneede@pandora.be'
 
 
 import sys
+import platform
+import os
 import p2pp.variables as v
 import p2pp.processing as processing
 from p2pp.logging import error, warning, comment
@@ -31,7 +33,7 @@ def main(filename):
     opf.close()
 
     v.rawfile = [item.strip() for item in v.rawfile]
-
+    v.filename = filename
     processing.process_file()
 
 
@@ -45,7 +47,11 @@ if __name__ == "__main__":
     number_of_args = len(sys.argv)
 
     if number_of_args == 1:
-        comment(sys.argv[0])
+        platformD = platform.system()
+        if platformD == 'Darwin':
+            comment("{}/p2pp_s3d.command".format(os.path.dirname(sys.argv[0])))
+        elif platformD == 'Windows':
+            comment("{}/\\p2pp_s3d.bat".format(os.path.dirname(sys.argv[0])))
         pass
 
     if number_of_args == 2:
