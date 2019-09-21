@@ -131,7 +131,7 @@ def configinfo():
 
 
 mainwindow = tkinter.Tk()
-mainwindow.title("Palette2 Post Processing for Simplify 3D")
+mainwindow.title("Palette2 Post Processing for Simplify-3D")
 center(mainwindow, 800, 600)
 
 if platformD == 'Windows':
