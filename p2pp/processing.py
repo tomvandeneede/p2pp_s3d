@@ -348,6 +348,7 @@ def process_gcode():
     if v.maxdelta >0.3 or v.mindelta < -0.3:
         warning("Tower hight deviates {:.2f}mm above and {:.2f}mm below print level".format(-v.mindelta, v.maxdelta))
         warning("Make sure to keep enough distance between tower and object to avoid collisions")
+        warning("If the tower grows over the print height, consider increasing the prime pillar width in S3D")
 
 
     gui.completed()
