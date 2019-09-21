@@ -278,6 +278,9 @@ def process_gcode():
                 v.purge_maxx = max(v.purge_maxx, tmp.get_parameter("X", -9999))
                 v.purge_miny = min(v.purge_miny, tmp.get_parameter("Y", 9999))
                 v.purge_maxy = max(v.purge_maxy, tmp.get_parameter("Y", -9999))
+
+            if tmp.is_comment() and tmp.comment.startswith(' process'):
+                v.gcodes.append(tmp)
         else:
             v.gcodes.append(tmp)
 
