@@ -111,6 +111,9 @@ def create_regex_objects():
     v.regex_purge_info = re.compile("(\w+):\[\s*(\d+)\s*,\s*(\d+)\s*\]")
     v.regex_bed_size = re.compile("^;\s*stroke([X|Y])override,(\-?\d+)")
     v.regex_bed_origin = re.compile("^;\s*originOffset([X|Y])override,(\-?\d+)")
+    v.regex_primepillar = re.compile("^;\s*primePillarLocation,(\-?\d+)")
+    v.regex_tower_width = re.compile("^;\s*primePillarWidth,(\-?\d+)")
+
 
 def p2pp_command( command , parameter):
 
@@ -132,6 +135,9 @@ def p2pp_command( command , parameter):
 
     if command == "SPLICEOFFSET":
         v.spliceoffset = float(parameter)
+
+    if command == "AUTOEXPANDTOWER":
+        v.expand_tower = True
 
     if command in [ "TOOL_0", "TOOL_1", "TOOL_2", "TOOL_3"]:
         m = v.regex_purge_info.match(parameter)
@@ -164,13 +170,14 @@ section = ["START", "INFILL", "PERIMETER", "OTHER", "PURGE"]
 
 def parse_comment( line ):
 
-    ## ; layer 60, Z = 12.000
     m = v.regex_layer.match(line)
     if m:
         v.process_layer = int(m.group(1))
         v.process_layer_z = float(m.group(2))
         v.layer_toolchange_count.append(0)
         v.layer_purge_volume.append(0.0)
+        v.layer_purge_structure.append(0)
+
 
     m = v.regex_p2pp.match(line)
     if m:
@@ -199,6 +206,14 @@ def parse_comment( line ):
             if not lh == v.layer_height:
                 error("Layer Height of all processes should be the same")
 
+    m = v.regex_primepillar.match(line)
+    if m:
+        v.pillarposition = int(m.group(1))
+
+    m = v.regex_tower_width.match(line)
+    if m:
+        v.pillarwidth = int(m.group(1))
+
     m = v.regex_extrusion_width.match(line)
     if m:
         ew = float(m.group(1))
@@ -220,7 +235,7 @@ def parse_comment( line ):
             v.mode = MODE_OTHER
 
 def calc_purge_length(_from , _to):
-    return ( v.unloadinfo[_from] + v.loadinfo[_to] )/2
+    return (v.unloadinfo[_from] + v.loadinfo[_to])/2
 
 def process_tool_change(gc):
 
@@ -295,22 +310,51 @@ def process_gcode():
 
         toolchange = tmp.is_toolchange()
         if toolchange in [0,1,2,3]:
+
+            # keep track of the tools used
             if not v.toolsused[ toolchange ] :
                 if not v.filament_type[toolchange]:
                     error("TOOL_{} setting command missing - output file cannot be created".format(toolchange))
             v.toolsused[ toolchange] = True
 
+            # caulculate the purge
+            if not (v.parse_curtool == -1):
+                v.layer_toolchange_count[-1] += 1
+                if v.filament_type[toolchange] and v.filament_type[v.parse_curtool] and not (v.parse_curtool==toolchange):
+                    v.layer_purge_volume[-1] += calc_purge_length(v.parse_curtool , toolchange)
+                    v.parse_prevtool = v.parse_curtool
+                    v.parse_curtool = toolchange
+
+            else:
+                v.parse_curtool = v.parse_prevtool = toolchange
 
 
-
-    comment('Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    comment('S3D Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
     comment('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
     comment("filament Info: " + v.filament_type.__str__())
     comment("Tool unload info: " + v.unloadinfo.__str__())
     comment("Tool load info: " + v.loadinfo.__str__())
     comment("Algorithms:" + v.algorithm.__str__())
 
-    purgetower.purge_create_layers(v.purge_minx+1 , v.purge_miny+1 , v.purge_maxx - v.purge_minx +2, v.purge_maxy - v.purge_miny +2)
+    comment("Maximum purge needed per layer: {}mm".format(max(v.layer_purge_volume)))
+
+
+    expand = 0
+    tower_fits = False
+    while not tower_fits:
+        purgetower.purge_create_layers(v.purge_minx-1 , v.purge_miny-1 , v.purge_maxx - v.purge_minx+2, v.purge_maxy - v.purge_miny +2)
+        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid ,purgetower.sequence_length_empty)
+        if not tower_fits:
+            purgetower.tower_auto_expand(10)
+            expand += 10
+
+
+    if expand > 0:
+        warning("Tower expanded by {}mm".format(expand))
+
+    comment('New purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    comment("Filament needed for a solid purge layer: {}mm".format(purgetower.sequence_length_solid))
+    comment("Filament needed for a sparse purge layer: {}mm".format(purgetower.sequence_length_empty))
 
     lineidx = 0
     linecount = len(v.gcodes)
@@ -340,7 +384,8 @@ def process_gcode():
             v.current_position_x = g.get_parameter("X", v.current_position_x)
             v.current_position_y = g.get_parameter("Y", v.current_position_y)
             v.current_position_z = g.get_parameter("Z", v.current_position_z)
-
+            if purgetower.moveintower():
+                error("MODEL COLLIDES WITH TOWER.")
         g.issue_command()
 
     process_tool_change(None)

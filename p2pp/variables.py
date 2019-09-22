@@ -12,6 +12,7 @@ toolchangeposition = []
 pingpositions = []
 layer_toolchange_count= []
 layer_purge_volume    = []
+layer_purge_structure = []
 algooverview = set([])
 
 mindelta = 999
@@ -52,7 +53,7 @@ gcodes  = []
 output_code = []
 
 wipe_feedrate = 3000
-purgelayer = 0
+purgelayer = 1
 
 
 layer_height = None
@@ -73,6 +74,8 @@ regex_use_prime_pillar = None
 regex_purge_info = None
 regex_bed_size = None
 regex_bed_origin = None
+regex_primepillar = None
+regex_tower_width = None
 
 current_position_x = 0
 current_position_y = 0
@@ -85,5 +88,12 @@ extrusion_multiplier = 1.0
 total_extrusion = 0
 
 filename = ""
+
+parse_prevtool = -1
+parse_curtool  = -1
+
+expand_tower = False
+pillarposition = -1
+pillarwidth = 0
 
 mode = 0
