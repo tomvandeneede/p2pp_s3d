@@ -256,10 +256,12 @@ def process_tool_change(gc):
 
     if v.current_tool == -1:
         v.current_tool = new_tool
+        v.previous_tool = new_tool
         # Issue brim layer
         for i in purgetower.brimlayer:
             i.issue_command()
         return
+
     if not v.previous_tool == v.current_tool:
         v.algooverview.add("{}_{}".format(v.filament_type[v.previous_tool], v.filament_type[v.current_tool]))
 
