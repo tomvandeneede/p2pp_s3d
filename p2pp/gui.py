@@ -39,17 +39,18 @@ def completed():
     else:
         text = "Competed without errors"
         color = '#005000'
-    progress_field = tkinter.Label(infosubframe , text=text, font=boldfont, foreground=color,  background="#808080")
+    progress_field = tkinter.Label(infosubframe, text=text, font=boldfont, foreground=color, background="#808080")
     progress_field.grid(row=3, column=2, sticky="ew")
 
 
 color_count = 0
 previous_progress = -1
 
+
 def setprogress(x):
     global previous_progress
     progress.set(x)
-    if  not x == previous_progress:
+    if not x == previous_progress:
         mainwindow.update()
         previous_progress = x
 
@@ -58,7 +59,7 @@ def create_logitem(text, color="black", force_update=True, position=tkinter.END)
     text = text.strip()
     global color_count
     color_count += 1
-    tagname = "color"+str(color_count)
+    tagname = "color" + str(color_count)
     loglist.tag_configure(tagname, foreground=color)
     loglist.insert(position, "  " + text + "\n", tagname)
     if force_update:
@@ -70,19 +71,24 @@ def error(text):
     errors += 1
     create_logitem(text, color='red')
 
+
 def warning(text):
     global warnings
     warnings += 1
     create_logitem(text, color='blue')
 
+
 def comment(text):
     create_logitem(text, color='black')
+
 
 def create_emptyline():
     create_logitem('')
 
+
 def close_window():
     mainwindow.destroy()
+
 
 def close_button_enable():
     closebutton.config(state=tkinter.NORMAL)
@@ -99,45 +105,29 @@ def center(win, width, height):
 
 
 def set_printer_id(text):
-    printerid.set(text)
+    printerid.set(text.strip())
     mainwindow.update()
 
 
 def setfilename(text):
-    filename.set(text)
+    filename.set(text.strip())
     mainwindow.update()
 
-
-def user_error(header, body_text):
-    tkMessageBox.showinfo(header, body_text)
-
-
-def ask_yes_no(title, message):
-    return (tkMessageBox.askquestion(title, message).upper()=="YES")
-
-
-def log_warning(text):
-    v.process_warnings.append(";" + text)
-    create_logitem(text, "red")
 
 def configinfo():
     global infosubframe
     infosubframe.destroy()
     infosubframe = tkinter.Frame(infoframe, border=3, relief='sunken', background="#909090")
     infosubframe.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-    tkinter.Label(infosubframe, text='CONFIGURATION  INFO', font=boldfontlarge, background="#909090").pack(side=tkinter.TOP, expand=1)
+    tkinter.Label(infosubframe, text='CONFIGURATION  INFO', font=boldfontlarge, background="#909090").pack(
+        side=tkinter.TOP, expand=1)
 
-    tkinter.Label(infosubframe, text="P2PP/S3D Version "+version.Version+"\n", font=boldfont, background="#909090").pack( side=tkinter.BOTTOM)
-
+    tkinter.Label(infosubframe, text="P2PP/S3D Version " + version.Version + "\n", font=boldfont,
+                  background="#909090").pack(side=tkinter.BOTTOM)
 
 mainwindow = tkinter.Tk()
 mainwindow.title("Palette2 Post Processing for Simplify-3D")
 center(mainwindow, 800, 600)
-
-# if platformD == 'Windows':
-#     logo_image = os.path.dirname(sys.argv[0]) + '\\favicon.ico'
-#     mainwindow.iconbitmap(logo_image)
-#     mainwindow.update()
 
 mainwindow['padx'] = 10
 mainwindow['pady'] = 10
@@ -175,9 +165,8 @@ tkinter.Label(infosubframe, text='Printer ID:', font=boldfont, background="#8080
 tkinter.Label(infosubframe, textvariable=printerid, font=normalfont, background="#808080").grid(row=1, column=2,
                                                                                                 sticky="w")
 
-
 tkinter.Label(infosubframe, text="P2PP/S3D V", font=boldfont, background="#808080").grid(row=2, column=1,
-                                                                                            sticky="w")
+                                                                                         sticky="w")
 tkinter.Label(infosubframe, text=version.Version, font=normalfont, background="#808080").grid(row=2, column=2,
                                                                                               sticky="w")
 
@@ -185,12 +174,12 @@ tkinter.Label(infosubframe, text=version.Version, font=normalfont, background="#
 progress = tkinter.IntVar()
 progress.set(0)
 tkinter.Label(infosubframe, text='Progress:', font=boldfont, background="#808080").grid(row=3, column=1, sticky="w")
-progressbar = ttk.Progressbar(infosubframe ,orient='horizontal', mode='determinate', length=500, maximum=100, variable=progress)
-progressbar.grid(row=3, column=2,  sticky='ew')
-
+progressbar = ttk.Progressbar(infosubframe, orient='horizontal', mode='determinate', length=500, maximum=100,
+                              variable=progress)
+progressbar.grid(row=3, column=2, sticky='ew')
 
 # Log frame
-logframe\
+logframe \
     = tkinter.Frame(mainwindow, border=3, relief="sunken")
 logframe.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 
@@ -209,13 +198,11 @@ buttonframe.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 closebutton = tkinter.Button(buttonframe, text="Exit", state=tkinter.DISABLED, command=close_window)
 closebutton.pack(side=tkinter.RIGHT, fill=tkinter.X, expand=1)
 
-
 mainwindow.rowconfigure(0, weight=1)
 mainwindow.rowconfigure(1, weight=1000)
-mainwindow.rowconfigure(2, weight=1)
+mainwindow.rowconfigure(2, weight=2)
 
 mainwindow.lift()
 mainwindow.attributes('-topmost', True)
 mainwindow.after_idle(mainwindow.attributes, '-topmost', False)
 mainwindow.update()
-
