@@ -36,7 +36,6 @@ def omegaheader():
     toolinfo = ["D0", "D0", "D0", "D0" ]
 
     materials = {}
-    header.append("\n; P2 Input / Material usage info\n")
     for i in range(4):
         if v.toolsused[i] and v.filament_type[i] not in materials.keys():
             materials[v.filament_type[i]] = len(materials.keys())+1
@@ -46,11 +45,8 @@ def omegaheader():
             toolinfo[i] = "D{}_input{}_{}".format(materials[v.filament_type[i]], i,v.filament_type[i])
 
     header.append('O25 {} {} {} {}'.format(toolinfo[0],toolinfo[1],toolinfo[2],toolinfo[3]) + "\n")
-    header.append("; P2 Number of splices = {}\n".format(len(v.toolchangeinfo)))
     header.append('O26 ' + hexify_short(len(v.toolchangeinfo)) + "\n")
-    header.append("; P2 Number of pings = {}\n".format(len(v.pingpositions)))
     header.append('O27 ' + hexify_short(len(v.pingpositions)) + "\n")
-    header.append("; P2 Number of splicing algorithms = {}\n".format(len(v.algooverview)))
     header.append('O28 ' + hexify_short(len(v.algooverview)) + "\n")
 
 
