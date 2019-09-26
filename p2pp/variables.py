@@ -28,6 +28,8 @@ unloadinfo = [80, 80, 80, 80]
 algorithm = {}
 
 
+processcomments = []
+
 extra_extrusion_at_end = 0
 spliceoffset= 20
 

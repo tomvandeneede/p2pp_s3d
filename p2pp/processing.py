@@ -57,6 +57,13 @@ def omegaheader():
     previous_change = 0
     header.append('O29 ' + hexify_short(0) + "\n")
     header.append("\n; P2 Tool change information\n")
+
+    v.processcomments.append("\n")
+    v.processcomments.append(";------------------------------------\n")
+    v.processcomments.append(";SPLICE INFORMATION - {} SPLICES\n".format(len(v.toolchangeinfo)))
+    v.processcomments.append(";------------------------------------\n")
+
+    previoussplice = 0
     for i in range(len(v.toolchangeinfo)):
         nextpos = v.toolchangeinfo[i]["E"]+v.spliceoffset
         if previous_change==0 and nextpos < 100:
@@ -70,6 +77,21 @@ def omegaheader():
 
         header.append("O30 D{:0>1d} {}\n".format(v.toolchangeinfo[i]["Tool"],
                                                  hexify_float(nextpos)))
+        v.processcomments.append(";Tool {} Length {:.2f}mm\n".format(v.toolchangeinfo[i]["Tool"], nextpos-previoussplice))
+        previoussplice = nextpos
+
+
+    v.processcomments.append("\n")
+
+    v.processcomments.append("\n")
+    v.processcomments.append(";------------------------------------\n")
+    v.processcomments.append(";PING INFORMATION - {} PINGS\n".format(len(v.pingpositions)))
+    v.processcomments.append(";------------------------------------\n")
+
+    for i in range( len(v.pingpositions)):
+        v.processcomments.append(";PING {:>4}  at {:8.2f}mm\n".format(i,v.pingpositions[i]))
+
+    v.processcomments.append("\n")
 
     header.append("\n; P2 Splicing algorithms\n")
     if not "DEFAULT" in v.algorithm.keys():
@@ -96,8 +118,11 @@ def omegaheader():
     header.append("O1 D{} {}\n"
                   .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end + v.spliceoffset))))
     header.append("\n")
+
+    header = header + v.processcomments
     header.append(";--- END OF P2 HEADER ---\n")
     header.append("\n")
+
 
 
     return header
@@ -235,7 +260,10 @@ def parse_comment( line ):
             v.mode = MODE_OTHER
 
 def calc_purge_length(_from , _to):
-    return (v.unloadinfo[_from] + v.loadinfo[_to])/2
+    tmp = (v.unloadinfo[_from] + v.loadinfo[_to])/2
+    if not tmp:
+        tmp = 0
+    return tmp
 
 def process_tool_change(gc):
 
@@ -269,8 +297,7 @@ def process_tool_change(gc):
     gc.move_to_comment("Toolchange handled by Palette")
 
     required_purge = calc_purge_length(v.current_tool , new_tool)
-
-    v.total_extrusion += purgetower.purge_generate_sequence(required_purge / v.extrusion_multiplier) * v.extrusion_multiplier
+    purgetower.purge_generate_sequence(required_purge / v.extrusion_multiplier) * v.extrusion_multiplier
 
     v.previous_tool = v.current_tool
     v.current_tool = new_tool

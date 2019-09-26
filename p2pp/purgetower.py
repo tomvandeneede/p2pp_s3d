@@ -315,7 +315,7 @@ def purge_generate_sequence(purgelength):
     global last_posx, last_posy, tmp_posx, tmp_posy, intermediate, tmpe
 
     if not purgelength > 0:
-        return
+        return 0
 
     keep_x = v.current_position_x
     keep_y = v.current_position_y
