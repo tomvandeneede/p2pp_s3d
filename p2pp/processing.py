@@ -356,7 +356,7 @@ def process_gcode():
                     error("TOOL_{} setting command missing - output file cannot be created".format(toolchange))
             v.toolsused[ toolchange] = True
 
-            # caulculate the purge
+            # calculate the purge
             if not (v.parse_curtool == -1):
                 v.layer_toolchange_count[-1] += 1
                 if v.filament_type[toolchange] and v.filament_type[v.parse_curtool] and not (v.parse_curtool==toolchange):
@@ -368,8 +368,8 @@ def process_gcode():
                 v.parse_curtool = v.parse_prevtool = toolchange
 
 
-    comment('S3D Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
-    comment('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
+    # comment('S3D Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    # comment('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
     comment("filament Info: " + v.filament_type.__str__())
     comment("Tool unload info: " + v.unloadinfo.__str__())
     comment("Tool load info: " + v.loadinfo.__str__())
@@ -392,8 +392,8 @@ def process_gcode():
         warning("Tower expanded by {}mm".format(expand))
 
     comment('New purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
-    comment("Filament needed for a solid purge layer: {}mm".format(purgetower.sequence_length_solid))
-    comment("Filament needed for a sparse purge layer: {}mm".format(purgetower.sequence_length_empty))
+    # comment("Filament needed for a solid purge layer: {}mm".format(purgetower.sequence_length_solid))
+    # comment("Filament needed for a sparse purge layer: {}mm".format(purgetower.sequence_length_empty))
 
     lineidx = 0
     linecount = len(v.gcodes)
@@ -429,7 +429,7 @@ def process_gcode():
 
     process_tool_change(None)
 
-    if v.maxdelta >0.3 or v.mindelta < -0.3:
+    if v.maxdelta >1 or v.mindelta < -1:
         warning("Tower hight deviates {:.2f}mm above and {:.2f}mm below print level".format(-v.mindelta, v.maxdelta))
         warning("Make sure to keep enough distance between tower and object to avoid collisions")
         warning("If the tower grows over the print height, consider increasing the prime pillar width in S3D")
