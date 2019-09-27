@@ -391,7 +391,7 @@ def process_gcode():
     if expand > 0:
         warning("Tower expanded by {}mm".format(expand))
 
-    comment('New purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    comment('Calculated purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
     # comment("Filament needed for a solid purge layer: {}mm".format(purgetower.sequence_length_solid))
     # comment("Filament needed for a sparse purge layer: {}mm".format(purgetower.sequence_length_empty))
 
