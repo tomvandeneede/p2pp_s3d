@@ -83,6 +83,8 @@ current_position_x = 0
 current_position_y = 0
 current_position_z = 0
 
+splice_procent = False
+
 previous_tool = -1
 current_tool = -1
 

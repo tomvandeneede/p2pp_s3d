@@ -61,13 +61,14 @@ def omegaheader():
 
     previoussplice = 0
     for i in range(len(v.toolchangeinfo)):
-        nextpos = v.toolchangeinfo[i]["E"]+v.spliceoffset
+        nextpos = v.toolchangeinfo[i]["E"]
+
         if previous_change==0 and nextpos < 100:
-            error("First splice is {}mm too short.  Try adding brim or skirt".format(100-nextpos))
+            error("First splice is {:.1f}mm too short.  Try adding brim or skirt".format(100-nextpos))
         else:
             splicelength = nextpos - previous_change
             if splicelength < 70:
-                error("Short splice {} is {}mm too short. Try increasing purge".format(i+1, 70-splicelength))
+                error("Short splice {} is {:.1f}mm too short. Try increasing purge".format(i+1, 70-splicelength))
         previous_change = nextpos
 
 
@@ -112,7 +113,7 @@ def omegaheader():
 
     header.append("\n")
     header.append("O1 D{} {}\n"
-                  .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end + v.spliceoffset))))
+                  .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end))))
     header.append("\n")
 
     header = header + v.processcomments
@@ -155,7 +156,15 @@ def p2pp_command( command , parameter):
         v.extra_extrusion_at_end = float(parameter)
 
     if command == "SPLICEOFFSET":
+        unit = "mm"
+        if parameter.endswith("%"):
+            parameter = parameter.replace("%", "")
+            v.splice_procent = True
+            unit = "% of purge length"
         v.spliceoffset = float(parameter)
+
+        comment("Splice offset is {}{}.".format(v.spliceoffset,unit))
+
 
     if command == "AUTOEXPANDTOWER":
         v.expand_tower = True
@@ -293,6 +302,11 @@ def process_tool_change(gc):
     gc.move_to_comment("Toolchange handled by Palette")
 
     required_purge = calc_purge_length(v.current_tool , new_tool)
+    if v.splice_procent:
+        tmp["E"] += required_purge * v.spliceoffset / 100
+    else:
+        tmp["E"] += v.spliceoffset
+
     purgetower.purge_generate_sequence(required_purge / v.extrusion_multiplier) * v.extrusion_multiplier
 
     v.previous_tool = v.current_tool
@@ -420,7 +434,6 @@ def process_gcode():
         warning("Make sure to keep enough distance between tower and object to avoid collisions")
         warning("If the tower grows over the print height, consider increasing the prime pillar width in S3D")
 
-
     gui.completed()
 
 def save_code():
@@ -449,7 +462,6 @@ def save_code():
     pass
 
 def process_file():
-
     create_regex_objects()
     process_gcode()
     save_code()

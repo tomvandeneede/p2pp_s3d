@@ -110,15 +110,20 @@ The actual purge length is the average of the unloading lengt of the old filamen
    ```
   ;P2PP LINEARPINGLENGTH=350
   ```  
-  > **SPLICEOFFSET** *[OPTIONAL]*
-    Is the amount of mm added to the first splice.  
-    It works in a similar way to the transition position % from Chroma and Canvas.  
-    Here the value is a fixed length.  In our testing, 30mm seemed to be a good position 
-    resulting in perfect prints. You may want to tweak this value if you find the transition 
-    happens too early or too late.
+  > **SPLICEOFFSET=nnn[%]** *[OPTIONAL]*
+    Splice offset indicates the amount of filament the splice is scheduled after ending printing with a specific tool.
+    The value can be set to a fixed number in milimeter or a percentage of the purge length applied
+    
    ```
+   ; use 30mm splice offset for all splices
   ;P2PP SPLICEOFFSET=30
+  
+  or 
+  
+  ; use a variable splice offset set to 30% of the transition length
+  ;P2PP SPLICEOFFSET=30%
   ``` 
+  
   
   ![splice offset](https://github.com/tomvandeneede/p2pp/blob/master/docs/spliceoffset.png)
   

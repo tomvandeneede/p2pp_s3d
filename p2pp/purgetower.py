@@ -187,35 +187,44 @@ def _purge_calculate_sequences_length():
             sequence_length_brim += i.E
 
 
-def _purge_create_sequence(code, pformat, x, y, w, h, step1):
-    generate_front = False
+def _purge_create_sequence(code, dir , x, y, w, h, step1):
 
     ew = v.extrusion_width
 
     cw = w - 4 * ew
+    ch = h - 4 * ew
 
-    start1 = x + 2 * ew + (cw % step1) / 2
-    end1 = x + 2 * ew + cw - (cw % step1) / 2
+    offset_x = x + 2 * ew
+    offset_y = y + 2 * ew
 
-    start2 = y + 2 * ew - ew * 0.15
-    end2 = y + h - 2 * ew + ew * 0.15
+    start1 = offset_x - ew * 0.15
+    end1 = offset_x + cw + ew * 0.15
 
-    code.append(gcode.GCodeCommand(pformat.format(start1, start2)))
-    pformat = (pformat + " E{:.4f}")
+    start2 = offset_y - ew * 0.15
+    end2 = offset_y + ch + ew * 0.15
+
+    if dir =="Y":
+        # start1, end1, start2, end2 = start2, end2, start1, end1
+        short_axis = "X"
+        code.append(gcode.GCodeCommand("G1 X{:.3f} Y{:.3f}".format(start2, start1)))
+    else:
+        short_axis = "Y"
+        code.append(gcode.GCodeCommand("G1 X{:.3f} Y{:.3f}".format(start1, start2)))
+
+    stroke_length = abs(end2 - start2)
+
+    stroke_num = False
 
     while start1 < end1:
-        if generate_front:
-            code.append(gcode.GCodeCommand(pformat.format(start1, start2, calculate_purge(step1))))
+        stroke_num = not stroke_num
+        stroke = min( end1 - start1 , step1 )
+        start1 = start1 + stroke
+        if stroke_num:
+            code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis,end2,calculate_purge(stroke_length))))
         else:
-            generate_front = True
+            code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis, start2, calculate_purge(stroke_length))))
 
-        code.append(gcode.GCodeCommand(pformat.format(start1, end2, calculate_purge(end2 - start2))))
-        start1 += step1
-
-        if start1 < end1:
-            code.append(gcode.GCodeCommand(pformat.format(start1, end2, calculate_purge(step1))))
-            code.append(gcode.GCodeCommand(pformat.format(start1, start2, calculate_purge(end2 - start2))))
-        start1 += step1
+        code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(dir, start1, calculate_purge(stroke))))
 
 
 
@@ -240,9 +249,9 @@ def purge_create_layers(x, y, w, h):
     filllayer.append(gcode.GCodeCommand(";---- FILL LAYER -------"))
     generate_rectangle(filllayer, x, y, w, h)
 
-    _purge_create_sequence(solidlayer, "G1 X{:.3f} Y{:.3f}", x, y, w, h, ew)
-    _purge_create_sequence(emptylayer, "G1 Y{:.3f} X{:.3f}", y, x, h, w, 2)
-    _purge_create_sequence(filllayer, "G1 Y{:.3f} X{:.3f}", y, x, h, w, 15)
+    _purge_create_sequence(solidlayer, "X", x, y, w, h, ew)
+    _purge_create_sequence(emptylayer, "Y", y, x, h, w, 2)
+    _purge_create_sequence(filllayer, "Y", y, x, h, w, 15)
 
     _purge_generate_tower_brim(x, y, w, h)
 
@@ -306,13 +315,13 @@ def _purge_generate_tower_brim(x, y, w, h):
     last_brim_x = x
     last_brim_y = y
 
-tmp_posx = 0
-tmp_posy = 0
+tmp_pos_x = 0
+tmp_pos_y = 0
 tmpe     = 0
 intermediate = False
 
 def purge_generate_sequence(purgelength):
-    global last_posx, last_posy, tmp_posx, tmp_posy, intermediate, tmpe
+    global last_posx, last_posy, tmp_pos_x, tmp_pos_y, intermediate, tmpe
 
     if not purgelength > 0:
         return 0
@@ -327,11 +336,10 @@ def purge_generate_sequence(purgelength):
     v.output_code.append("; --------------------------------------------------\n")
     v.output_code.append("; --- P2PP WIPE SEQUENCE START  FOR {:5.2f}mm\n".format(purgelength))
     v.output_code.append("; --- DELTA = {:.2f}\n".format(pdelta))
-
+    v.output_code.append("; --------------------------------------------------\n")
 
     v.maxdelta = max(v.maxdelta , pdelta)
     v.mindelta = min(v.mindelta , pdelta)
-
 
     if not last_posx:
         last_posx = float(v.purge_minx)
@@ -345,7 +353,6 @@ def purge_generate_sequence(purgelength):
     # generate wipe code
     while purgelength > 1:
 
-
         if not intermediate:
 
             next_command = _purge_get_nextcommand_in_sequence()
@@ -355,23 +362,21 @@ def purge_generate_sequence(purgelength):
                 _purge_update_sequence_index(purgelength)
                 next_command = _purge_get_nextcommand_in_sequence()
         else:
-            next_command = gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f} ;inter resume ".format(tmp_posx, tmp_posy, tmpe ))
-
+            next_command = gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f} ;inter resume ".format(tmp_pos_x, tmp_pos_y, tmpe))
 
         intermediate = False
 
+        if float(next_command.E) > (purgelength + 1):
 
-        if next_command.E > (purgelength + 1):
+            tmp_pos_x = float(if_defined(next_command.X, last_posx))
+            tmp_pos_y = float(if_defined(next_command.Y, last_posy))
 
-            tmp_posx = if_defined(next_command.X, last_posx)
-            tmp_posy = if_defined(next_command.Y, last_posy)
-
-            last_posx = last_posx + (tmp_posx - last_posx) * (purgelength / next_command.E)
-            last_posy = last_posy + (tmp_posy - last_posy) * (purgelength / next_command.E)
-            tmpe = next_command.E - purgelength
+            last_posx = last_posx + (tmp_pos_x - last_posx) * (purgelength / float(next_command.E))
+            last_posy = last_posy + (tmp_pos_y - last_posy) * (purgelength / float(next_command.E))
+            tmpe = float(next_command.E )- purgelength
             intermediate = True
             actual += purgelength
-            gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f}   ;inter {:.3f} {:.3f}".format(last_posx, last_posy, purgelength, tmp_posx, tmp_posy)).issue_command()
+            gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f}   ;inter {:.3f} {:.3f}".format(last_posx, last_posy, purgelength, tmp_pos_x, tmp_pos_y)).issue_command()
             purgelength = 0
 
         else:
