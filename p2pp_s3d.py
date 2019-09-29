@@ -11,7 +11,7 @@ import platform
 import os
 import p2pp.gui as gui
 import p2pp.variables as v
-import p2pp.processing as processing
+import p2pp.mcf as mcf
 from p2pp.logging import error, warning, comment
 
 
@@ -35,7 +35,7 @@ def main(filename):
     v.rawfile = [item.strip() for item in v.rawfile]
     v.filename = filename
     gui.setfilename(filename)
-    processing.process_file()
+    mcf.process_file()
 
 
 

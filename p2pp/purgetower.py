@@ -35,6 +35,8 @@ last_posy = None
 last_brim_x = None
 last_brim_y = None
 
+ew = 0
+
 
 def if_defined(x, y):
     if x:
@@ -52,6 +54,12 @@ def calculate_purge(movelength):
     volume = v.extrusion_width * v.layer_height * (abs(movelength) + v.layer_height)
     return filament_volume_to_length(volume)
 
+
+def calc_purge_length(_from , _to):
+    tmp = (v.unloadinfo[_from] + v.loadinfo[_to])/2
+    if not tmp:
+        tmp = 0
+    return tmp
 
 def moveintower():
     if v.current_position_x < v.purge_minx:
@@ -150,7 +158,6 @@ def tower_auto_expand(diff):
 
 
 def generate_rectangle(result, x, y, w, h):
-    ew = v.extrusion_width
     x2 = x + w
     y2 = y + h
     result.append(gcode.GCodeCommand("G1 X{:.3f} Y{:.3f}".format(x, y)))
@@ -187,9 +194,15 @@ def _purge_calculate_sequences_length():
             sequence_length_brim += i.E
 
 
-def _purge_create_sequence(code, dir , x, y, w, h, step1):
+def _calculate_filling_box( x, y, w, h):
+    _x = x + 2 * ew
+    _y = y + 2 * ew
+    _w = w - 4 * ew
+    _h = h - 4 * ew
+    return _x, _y, _x + _w, y + _h, _w, _h
 
-    ew = v.extrusion_width
+
+def _purge_create_sequence(code, dir , x, y, w, h, step1):
 
     cw = w - 4 * ew
     ch = h - 4 * ew
@@ -227,9 +240,72 @@ def _purge_create_sequence(code, dir , x, y, w, h, step1):
         code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(dir, start1, calculate_purge(stroke))))
 
 
+def dist (x1, y1, x2, y2):
+    return math.sqrt((x1-x2) ** 2 + (y1-y2) ** 2)
+
+
+def clipline( slope ,  left, bottom, right, top, startx ):
+
+    func_x = lambda y: slope * (y - bottom) + startx
+    func_y = lambda x: (x - startx) / slope + bottom
+    func_inrange =lambda x, y: (left <= x) and (x <= right) and (bottom <= y) and (y <= top)
+
+    rx = [ func_x(bottom), func_x(top) , left           , right         ]
+    ry = [ bottom        , top         , func_y(left)   , func_y(right) ]
+
+
+    for i in range(3,-1,-1):
+        if not func_inrange(rx[i],ry[i]):
+            del rx[i]
+            del ry[i]
+
+    if (len(rx) == 2) and (len(ry) == 2):
+        return [[rx[0], ry[0]], [rx[1], ry[1]]]
+
+def _generate_hatch(code, slope , x1, y1, x2, y2 , infill ):
+
+    assert infill > 0, "Infill must be >0"
+    assert abs(slope) == 1, "Slope value must be -1 or 1"
+
+    step = 100 / infill * ew
+
+    if slope > 0:
+        last_x = x1
+        last_y = y1
+        start_x = x1 - (y2 - y1) + step
+        endx = x2
+    else:
+        last_x = x1
+        last_y = y1
+        start_x = x1 + step
+        endx = x2 + (y2-y1) - step
+
+
+    index = 0
+
+    code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f}".format(last_x, last_y)))
+
+    while start_x < endx:
+        next_points = clipline(slope , x1, y1, x2, y2, start_x)
+
+        start_x = start_x + step
+        if next_points:
+            if dist(last_x, last_y, next_points[index][0], next_points[index][1]) > dist(last_x, last_y, next_points[1-index][0], next_points[1-index][1]):
+                index = 1-index
+
+                code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
+                                                     dist(last_x,last_y,next_points[index][0], next_points[index][1] ))))
+                last_x = next_points[index][0]
+                last_y = next_points[index][1]
+                index = 1-index
+                code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
+                                                    dist(last_x, last_y, next_points[index][0], next_points[index][1]))))
+                last_x = next_points[index][0]
+                last_y = next_points[index][1]
+
 
 def purge_create_layers(x, y, w, h):
-    global solidlayer, emptylayer, filllayer
+    global solidlayer, emptylayer, filllayer, ew
 
     solidlayer = []
     emptylayer = []
@@ -295,7 +371,6 @@ def _purge_generate_tower_brim(x, y, w, h):
     global brimlayer, last_brim_x, last_brim_y
 
     brimlayer = []
-    ew = v.extrusion_width
     y -= ew
     w += ew
     h += 2 * ew
@@ -376,6 +451,7 @@ def purge_generate_sequence(purgelength):
             tmpe = float(next_command.E )- purgelength
             intermediate = True
             actual += purgelength
+
             gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f}   ;inter {:.3f} {:.3f}".format(last_posx, last_posy, purgelength, tmp_pos_x, tmp_pos_y)).issue_command()
             purgelength = 0
 

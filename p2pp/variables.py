@@ -62,7 +62,7 @@ layer_height = None
 extrusion_width = None
 prime_pillar = 0
 
-# nex two variables keep the processing layer value
+# nex two variables keep the mcf layer value
 process_layer = 0
 process_layer_z = 0
 
@@ -87,6 +87,7 @@ splice_procent = False
 
 previous_tool = -1
 current_tool = -1
+
 
 extrusion_multiplier = 1.0
 total_extrusion = 0
