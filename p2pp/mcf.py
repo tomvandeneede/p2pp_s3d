@@ -11,17 +11,16 @@ import p2pp.purgetower as purgetower
 import p2pp.gui as gui
 from p2pp.logging import error, warning, comment
 from p2pp.omega import omegaheader
-import  p2pp.parameters as parameters
+import p2pp.parameters as parameters
 
 
 def process_tool_change(gc):
     if not gc:
-        tmp = {"Layer": 999 , "Tool": int(v.previous_tool), "E": v.total_extrusion}
+        tmp = {"Layer": 999, "Tool": int(v.previous_tool), "E": v.total_extrusion}
         v.toolchangeinfo.append(tmp)
         return
 
     tmp = {"Layer": gc.layer, "Tool": int(v.previous_tool), "E": v.total_extrusion}
-
 
     new_tool = int(gc.command[1])
 
@@ -43,12 +42,20 @@ def process_tool_change(gc):
     v.toolchangeinfo.append(tmp)
     gc.move_to_comment("Toolchange handled by Palette")
 
-    required_purge = purgetower.calc_purge_length(v.current_tool , new_tool)
+    required_purge = purgetower.calc_purge_length(v.current_tool, new_tool)
+
+    # add the amount of splice offset either as a fixed length or as a percentage of the upcoming purge
+    ###################################################################################################
     if v.splice_procent:
         tmp["E"] += required_purge * v.spliceoffset / 100
     else:
         tmp["E"] += v.spliceoffset
 
+    v.toolchange = new_tool + 1
+    v.toolchangepos = tmp["E"]
+
+    # generate the purge tower
+    ##########################
     purgetower.purge_generate_sequence(required_purge / v.extrusion_multiplier) * v.extrusion_multiplier
 
     v.previous_tool = v.current_tool
@@ -56,23 +63,22 @@ def process_tool_change(gc):
 
 
 def process_gcode():
-
-    gui.comment("Processing "+v.filename)
+    gui.comment("Processing " + v.filename)
     line_count = len(v.rawfile)
     line_idx = 0
     for line in v.rawfile:
-        line_idx +=1
+        line_idx += 1
         gui.setprogress(int(50 * line_idx / line_count))
 
         # skip fully empty lines
         if len(line) == 0:
             continue
 
-        tmp = gcode.GCodeCommand(line)
-
         # parse comments
         if line.startswith(";"):
-            parameters.parse_comment( line )
+            line = parameters.parse_comment(line)
+
+        tmp = gcode.GCodeCommand(line)
 
         # we calculate the purge for tower position
         # afterwards this code is removed
@@ -90,28 +96,26 @@ def process_gcode():
             v.gcodes.append(tmp)
 
         toolchange = tmp.is_toolchange()
-        if toolchange in [0,1,2,3]:
+        if toolchange in [0, 1, 2, 3]:
 
             # keep track of the tools used
-            if not v.toolsused[ toolchange ] :
+            if not v.toolsused[toolchange]:
                 if not v.filament_type[toolchange]:
                     error("TOOL_{} setting command missing - output file cannot be created".format(toolchange))
-            v.toolsused[ toolchange] = True
+            v.toolsused[toolchange] = True
 
             # calculate the purge
             if not (v.parse_curtool == -1):
                 v.layer_toolchange_count[-1] += 1
-                if v.filament_type[toolchange] and v.filament_type[v.parse_curtool] and not (v.parse_curtool==toolchange):
-                    v.layer_purge_volume[-1] += purgetower.calc_purge_length(v.parse_curtool , toolchange)
+                if v.filament_type[toolchange] and v.filament_type[v.parse_curtool] and not (
+                        v.parse_curtool == toolchange):
+                    v.layer_purge_volume[-1] += purgetower.calc_purge_length(v.parse_curtool, toolchange)
                     v.parse_prevtool = v.parse_curtool
                     v.parse_curtool = toolchange
 
             else:
                 v.parse_curtool = v.parse_prevtool = toolchange
 
-
-    # comment('S3D Purge: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
-    # comment('Bed Size: {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.bed_min_x,v.bed_min_y,v.bed_size_x,v.bed_size_y ))
     comment("filament Info: " + v.filament_type.__str__())
     comment("Tool unload info: " + v.unloadinfo.__str__())
     comment("Tool load info: " + v.loadinfo.__str__())
@@ -119,21 +123,21 @@ def process_gcode():
 
     comment("Maximum purge needed per layer: {}mm".format(max(v.layer_purge_volume)))
 
-
     expand = 0
     tower_fits = False
     while not tower_fits:
-        purgetower.purge_create_layers(v.purge_minx-1 , v.purge_miny-1 , v.purge_maxx - v.purge_minx+2, v.purge_maxy - v.purge_miny +2)
-        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid ,purgetower.sequence_length_empty)
+        purgetower.purge_create_layers(v.purge_minx - 1, v.purge_miny - 1, v.purge_maxx - v.purge_minx + 2,
+                                       v.purge_maxy - v.purge_miny + 2)
+        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty)
         if not tower_fits:
             purgetower.tower_auto_expand(10)
             expand += 10
 
-
     if expand > 0:
         warning("Tower expanded by {}mm".format(expand))
 
-    comment('Calculated purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx, v.purge_maxy))
+    comment('Calculated purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx,
+                                                                              v.purge_maxy))
 
     line_idx = 0
     line_count = len(v.gcodes)
@@ -143,21 +147,21 @@ def process_gcode():
         if g.command in ["M220"]:
             g.move_to_comment("IGNORED COMMAND")
             g.issue_command()
-            continue     # no further mcf required
+            continue  # no further mcf required
 
         if g.command == "M221":
-            v.extrusion_multiplier = g.get_parameter("S", v.extrusion_multiplier*100)/100
+            v.extrusion_multiplier = g.get_parameter("S", v.extrusion_multiplier * 100) / 100
             g.issue_command()
-            continue      # no further mcf required
+            continue  # no further mcf required
 
-        if g.command in ["T0", "T1" , "T2", "T3"]:
+        if g.command in ["T0", "T1", "T2", "T3"]:
             process_tool_change(g)
             g.issue_command()
-            continue      # no further mcf required
+            continue  # no further mcf required
 
         if g.command in ["M104", "M106", "M109", "M140", "M190", "M73", "M900", "M84"]:
             g.issue_command()
-            continue      # no further mcf required
+            continue  # no further mcf required
 
         if g.is_movement_command():
             v.current_position_x = g.get_parameter("X", v.current_position_x)
@@ -169,29 +173,29 @@ def process_gcode():
 
     process_tool_change(None)
 
-    if v.maxdelta >1 or v.mindelta < -1:
+    if v.maxdelta > 1 or v.mindelta < -1:
         warning("Tower hight deviates {:.2f}mm above and {:.2f}mm below print level".format(-v.mindelta, v.maxdelta))
         warning("Make sure to keep enough distance between tower and object to avoid collisions")
         warning("If the tower grows over the print height, consider increasing the prime pillar width in S3D")
 
     gui.completed()
 
+
 def save_code():
     output_file = v.filename.replace(".gcode", ".mcf.gcode")
 
-    comment("saving output to "+output_file)
-
+    comment("saving output to " + output_file)
 
     header = omegaheader()
-    comment(" number of lines: {}".format(len(header)+len(v.output_code)))
+    comment(" number of lines: {}".format(len(header) + len(v.output_code)))
 
     try:
-        opf = open(output_file,"w",  encoding='utf-8')
+        opf = open(output_file, "w", encoding='utf-8')
     except TypeError:
         try:
             opf = open(output_file, "w")
         except IOError:
-            error ("Could not open output file {}".format(output_file))
+            error("Could not open output file {}".format(output_file))
             return
     except IOError:
         error("Could not read open output {}".format(output_file))
@@ -201,8 +205,8 @@ def save_code():
     opf.close()
     pass
 
+
 def process_file():
     parameters.create_regex_objects()
     process_gcode()
     save_code()
-

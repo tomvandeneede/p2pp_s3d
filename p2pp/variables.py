@@ -5,13 +5,12 @@ __license__ = 'GPLv3'
 __maintainer__ = 'Tom Van den Eede'
 __email__ = 't.vandeneede@pandora.be'
 
-
-toolsused = [ False, False, False, False]
+toolsused = [False, False, False, False]
 toolchangeinfo = []
 toolchangeposition = []
 pingpositions = []
-layer_toolchange_count= []
-layer_purge_volume    = []
+layer_toolchange_count = []
+layer_purge_volume = []
 layer_purge_structure = []
 algooverview = set([])
 
@@ -27,16 +26,15 @@ loadinfo = [80, 80, 80, 80]
 unloadinfo = [80, 80, 80, 80]
 algorithm = {}
 
-
 processcomments = []
 
 extra_extrusion_at_end = 0
-spliceoffset= 20
+spliceoffset = 20
 
-purge_minx=9999
-purge_maxx=-9999
-purge_miny=9999
-purge_maxy=-9999
+purge_minx = 9999
+purge_maxx = -9999
+purge_miny = 9999
+purge_maxy = -9999
 
 bed_min_x = 0
 bed_min_y = 0
@@ -46,17 +44,16 @@ bed_size_y = 0
 brim_generated = False
 
 pingincrease = 1.03
-pinglength   = 350
+pinglength = 350
 
 towerdelta = 0
 
 rawfile = []
-gcodes  = []
+gcodes = []
 output_code = []
 
 wipe_feedrate = 3000
 purgelayer = 1
-
 
 layer_height = None
 extrusion_width = None
@@ -66,7 +63,7 @@ prime_pillar = 0
 process_layer = 0
 process_layer_z = 0
 
-#regex objects
+# regex objects
 
 regex_layer = None
 regex_p2pp = None
@@ -78,6 +75,7 @@ regex_bed_size = None
 regex_bed_origin = None
 regex_primepillar = None
 regex_tower_width = None
+regex_process = None
 
 current_position_x = 0
 current_position_y = 0
@@ -87,7 +85,8 @@ splice_procent = False
 
 previous_tool = -1
 current_tool = -1
-
+toolchange = 0
+toolchangepos = 0
 
 extrusion_multiplier = 1.0
 total_extrusion = 0
@@ -95,7 +94,7 @@ total_extrusion = 0
 filename = ""
 
 parse_prevtool = -1
-parse_curtool  = -1
+parse_curtool = -1
 
 expand_tower = False
 pillarposition = -1

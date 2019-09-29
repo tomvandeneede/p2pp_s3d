@@ -6,11 +6,10 @@ __maintainer__ = 'Tom Van den Eede'
 
 __email__ = 't.vandeneede@pandora.be'
 
-from p2pp.logging import error, warning, comment
+from p2pp.logging import error, comment
 import p2pp.variables as v
 import re
 import p2pp.gui as gui
-
 
 MODE_START = 0
 MODE_INFILL = 1
@@ -18,8 +17,22 @@ MODE_PERIMETER = 2
 MODE_OTHER = 3
 MODE_PURGE = 4
 
-def parse_comment( line ):
 
+def create_regex_objects():
+    v.regex_layer = re.compile("^; layer (\d+), Z = (\d+\.\d+)")
+    v.regex_p2pp = re.compile("^;\s*P2PP\s+([^=]+)=?(.*)$")
+    v.regex_layer_height = re.compile("^;\s*layerHeight,(\d+\.\d+)")
+    v.regex_extrusion_width = re.compile("^;\s*extruderWidth,(\d+\.\d+)")
+    v.regex_use_prime_pillar = re.compile("^;\s*usePrimePillar,(\d)")
+    v.regex_purge_info = re.compile("(\w+):\[\s*(\d+)\s*;\s*(\d+)\s*\]")
+    v.regex_bed_size = re.compile("^;\s*stroke([X|Y])override,(-?\d+)")
+    v.regex_bed_origin = re.compile("^;\s*originOffset([X|Y])override,(-?\d+)")
+    v.regex_primepillar = re.compile("^;\s*primePillarLocation,(-?\d+)")
+    v.regex_tower_width = re.compile("^;\s*primePillarWidth,(-?\d+)")
+    v.regex_process = re.compile("^;\s*process Input\s*\d")
+
+
+def parse_comment(line):
     m = v.regex_layer.match(line)
     if m:
         v.process_layer = int(m.group(1))
@@ -28,21 +41,20 @@ def parse_comment( line ):
         v.layer_purge_volume.append(0.0)
         v.layer_purge_structure.append(0)
 
-
     m = v.regex_p2pp.match(line)
     if m:
-        p2pp_command( m.group(1), m.group(2))
+        p2pp_command(m.group(1), m.group(2))
 
     m = v.regex_bed_size.match(line)
     if m:
-        if m.group(1)=="X":
+        if m.group(1) == "X":
             v.bed_size_x = int(m.group(2))
         else:
             v.bed_size_y = int(m.group(2))
 
     m = v.regex_bed_origin.match(line)
     if m:
-        if m.group(1)=="X":
+        if m.group(1) == "X":
             v.bed_min_x = int(m.group(2))
         else:
             v.bed_min_y = int(m.group(2))
@@ -84,22 +96,13 @@ def parse_comment( line ):
         else:
             v.mode = MODE_OTHER
 
-def create_regex_objects():
-    v.regex_layer = re.compile("^; layer (\d+), Z = (\d+\.\d+)")
-    v.regex_p2pp = re.compile("^;\s*P2PP\s+([^=]+)=?(.*)$")
-    v.regex_layer_height= re.compile("^;\s*layerHeight,(\d+\.\d+)")
-    v.regex_extrusion_width= re.compile("^;\s*extruderWidth,(\d+\.\d+)")
-    v.regex_use_prime_pillar= re.compile("^;\s*usePrimePillar,(\d)")
-    v.regex_purge_info = re.compile("(\w+):\[\s*(\d+)\s*,\s*(\d+)\s*\]")
-    v.regex_bed_size = re.compile("^;\s*stroke([X|Y])override,(\-?\d+)")
-    v.regex_bed_origin = re.compile("^;\s*originOffset([X|Y])override,(\-?\d+)")
-    v.regex_primepillar = re.compile("^;\s*primePillarLocation,(\-?\d+)")
-    v.regex_tower_width = re.compile("^;\s*primePillarWidth,(\-?\d+)")
+    # if line.startswith("; process Input"):
+    #     return("; ---pr0cess input removed----")
+
+    return line
 
 
-
-def p2pp_command( command , parameter):
-
+def p2pp_command(command, parameter):
     command = command.upper()
 
     if command == "LINEARPINGLENGTH":
@@ -124,13 +127,12 @@ def p2pp_command( command , parameter):
             unit = "% of purge length"
         v.spliceoffset = float(parameter)
 
-        comment("Splice offset is {}{}.".format(v.spliceoffset,unit))
-
+        comment("Splice offset is {}{}.".format(v.spliceoffset, unit))
 
     if command == "AUTOEXPANDTOWER":
         v.expand_tower = True
 
-    if command in [ "TOOL_0", "TOOL_1", "TOOL_2", "TOOL_3"]:
+    if command in ["TOOL_0", "TOOL_1", "TOOL_2", "TOOL_3"]:
         m = v.regex_purge_info.match(parameter)
         if m:
             tool = int(command[-1])
@@ -144,8 +146,8 @@ def p2pp_command( command , parameter):
 
         m = re.search(_algo, command)
         if m:
-            v.algorithm["{}".format(m.group(1))]= (int(m.group(2)), int(m.group(3)), int(m.group(4)))
+            v.algorithm["{}".format(m.group(1))] = (int(m.group(2)), int(m.group(3)), int(m.group(4)))
         else:
-            m = re.search(_deflt, command )
+            m = re.search(_deflt, command)
             if m:
-                v.algorithm["DEFAULT"] = ( int(m.group(1)), int(m.group(2)), int(m.group(3)))
+                v.algorithm["DEFAULT"] = (int(m.group(1)), int(m.group(2)), int(m.group(3)))

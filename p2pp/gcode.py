@@ -5,18 +5,19 @@ __license__ = 'GPLv3'
 __maintainer__ = 'Tom Van den Eede'
 __email__ = 't.vandeneede@pandora.be'
 
+import p2pp.variables as v
+from p2pp.formatnumbers import hexify_float
+
 RELATIVE = True
 ABSOLUTE = False
 
-import p2pp.variables as v
-from p2pp.formatnumbers import hexify_short, hexify_float, hexify_long, hexify_byte
 
 class GCodeCommand:
     command = None
     parameters = {}
     comment = None
     flags = []
-    layer  = 0
+    layer = 0
     layerz = 0
     codesection = None
     X = None
@@ -67,7 +68,6 @@ class GCodeCommand:
         self.layer = v.process_layer
         self.layerz = v.process_layer_z
 
-
     def __str__(self):
         p = ""
         for key in self.parameters:
@@ -84,12 +84,15 @@ class GCodeCommand:
 
         return ("{} {} {}".format(c, p, co)).strip() + "\n"
 
+
     def update_parameter(self, parameter, value):
         self.parameters[parameter] = value
+
 
     def remove_parameter(self, parameter):
         if parameter in self.parameters:
             self.parameters.pop(parameter)
+
 
     def move_to_comment(self, text):
         if self.command:
@@ -98,24 +101,28 @@ class GCodeCommand:
         self.command = None
         self.parameters.clear()
 
+
     def has_parameter(self, parametername):
         return parametername in self.parameters
 
-    def get_parameter(self, parm , defaultvalue = 0 ):
+
+    def get_parameter(self, parm, defaultvalue=0):
         if self.has_parameter(parm):
             return self.parameters[parm]
         return defaultvalue
+
 
     def issue_command(self):
         v.output_code.append(self.__str__())
         if self.E and self.is_movement_command():
 
-            #### perform ping checks
+            # perform ping checks
             v.total_extrusion += self.E * v.extrusion_multiplier
             if v.total_extrusion - v.lastping >= v.pinglength:
                 v.pingpositions.append(v.total_extrusion)
                 v.output_code.append(";----------------------------------\n")
-                v.output_code.append("; P2 PING {} COMMAND AT {:.3f}mm\n".format(len(v.pingpositions), v.total_extrusion))
+                v.output_code.append(
+                    "; P2 PING {} COMMAND AT {:.3f}mm\n".format(len(v.pingpositions), v.total_extrusion))
                 v.output_code.append("O31 {}\n".format(hexify_float(v.total_extrusion)))
                 v.output_code.append(";----------------------------------\n")
                 v.lastping = v.total_extrusion
@@ -128,15 +135,16 @@ class GCodeCommand:
         else:
             self.comment = text
 
+
     def is_comment(self):
         return self.command == None and not (self.comment == None)
 
+
     def is_toolchange(self):
-        if self.command and self.command[0]=='T':
+        if self.command and self.command[0] == 'T':
             return int(self.command[1])
         return None
 
+
     def is_movement_command(self):
         return self.command in ['G0', 'G1', 'G2', 'G3', 'G5']
-
-

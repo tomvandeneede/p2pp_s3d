@@ -9,7 +9,6 @@ __email__ = 'P2PP@pandora.be'
 
 import p2pp.gcode as gcode
 import p2pp.variables as v
-from p2pp.logging import error,warning,comment
 import math
 
 solidlayer = []
@@ -47,19 +46,22 @@ def if_defined(x, y):
 def filament_volume_to_length(x):
     return x / (1.75 / 2 * 1.75 / 2 * math.pi)
 
+
 def filament_length_to_volume(x):
-    return  x * (1.75 / 2 * 1.75 / 2 * math.pi)
+    return x * (1.75 / 2 * 1.75 / 2 * math.pi)
+
 
 def calculate_purge(movelength):
-    volume = v.extrusion_width * v.layer_height * (abs(movelength) + v.layer_height)
+    volume = ew * v.layer_height * (abs(movelength) + v.layer_height)
     return filament_volume_to_length(volume)
 
 
-def calc_purge_length(_from , _to):
-    tmp = (v.unloadinfo[_from] + v.loadinfo[_to])/2
+def calc_purge_length(_from, _to):
+    tmp = (v.unloadinfo[_from] + v.loadinfo[_to]) / 2
     if not tmp:
         tmp = 0
     return tmp
+
 
 def moveintower():
     if v.current_position_x < v.purge_minx:
@@ -73,13 +75,12 @@ def moveintower():
     return True
 
 
-def find_highest_purge(type, purgelayer):
-    idx = purgelayer
-    while idx > 0:
-        if v.layer_purge_structure[idx]==type:
+def find_highest_purge(search_for, start_from_layer):
+    for idx in range(start_from_layer, 0, -1):
+        if v.layer_purge_structure[idx] == search_for:
             return idx
-        idx = idx - 1
     return None
+
 
 def simulate_tower(amount_solid, amount_sparse):
     purge_layer = 0
@@ -89,7 +90,6 @@ def simulate_tower(amount_solid, amount_sparse):
 
     for i in range(len(v.layer_purge_structure)):
         v.layer_purge_structure[i] = 0
-
 
     v.layer_purge_structure[0] = PURGE_SOLID
     purge_layer_left = amount_solid
@@ -107,26 +107,26 @@ def simulate_tower(amount_solid, amount_sparse):
             # now we have a remainder of purge we still need to handle
             # we start by filling um empty layers from the bottom-up:
 
-            while (lp > 0 ):
-                if (purge_layer == i ):
+            while lp > 0:
+                if purge_layer == i:
                     break
-                purge_layer +=1
+                purge_layer += 1
                 v.layer_purge_structure[purge_layer] = PURGE_EMPTY
-                if (lp < amount_sparse):
-                    purge_layer_left =  amount_sparse - lp
+                if lp < amount_sparse:
+                    purge_layer_left = amount_sparse - lp
                 lp -= amount_sparse
 
             idx = True
-            while lp>0 and idx :
-                idx = find_highest_purge(PURGE_EMPTY, purge_layer-1)
+            while lp > 0 and idx:
+                idx = find_highest_purge(PURGE_EMPTY, purge_layer - 1)
                 if idx:
                     v.layer_purge_structure[idx] = PURGE_SOLID
                     if lp > ld:
                         lp -= ld
                     else:
-                        purge_layer_left += ld-lp
+                        purge_layer_left += ld - lp
                         lp -= ld
-            if lp>0:
+            if lp > 0:
                 return False
         else:
             purge_layer_left -= lp
@@ -140,10 +140,10 @@ def simulate_tower(amount_solid, amount_sparse):
 
     return True
 
-def tower_auto_expand(diff):
 
-    v.purge_minx  -= diff/2
-    v.purge_maxx  += diff/2
+def tower_auto_expand(diff):
+    v.purge_minx -= diff / 2
+    v.purge_maxx += diff / 2
 
     if v.purge_minx < v.bed_min_x:
         moveright = v.bed_min_x - v.purge_minx + 5
@@ -154,7 +154,6 @@ def tower_auto_expand(diff):
         moveleft = v.bed_min_x + v.bed_size_x - v.purge_maxx - 5
         v.purge_minx += moveleft
         v.purge_maxx += moveleft
-
 
 
 def generate_rectangle(result, x, y, w, h):
@@ -194,7 +193,7 @@ def _purge_calculate_sequences_length():
             sequence_length_brim += i.E
 
 
-def _calculate_filling_box( x, y, w, h):
+def _calculate_filling_box(x, y, w, h):
     _x = x + 2 * ew
     _y = y + 2 * ew
     _w = w - 4 * ew
@@ -202,8 +201,7 @@ def _calculate_filling_box( x, y, w, h):
     return _x, _y, _x + _w, y + _h, _w, _h
 
 
-def _purge_create_sequence(code, dir , x, y, w, h, step1):
-
+def _purge_create_sequence(code, main_axis, x, y, w, h, step1):
     cw = w - 4 * ew
     ch = h - 4 * ew
 
@@ -216,7 +214,7 @@ def _purge_create_sequence(code, dir , x, y, w, h, step1):
     start2 = offset_y - ew * 0.15
     end2 = offset_y + ch + ew * 0.15
 
-    if dir =="Y":
+    if main_axis == "Y":
         # start1, end1, start2, end2 = start2, end2, start1, end1
         short_axis = "X"
         code.append(gcode.GCodeCommand("G1 X{:.3f} Y{:.3f}".format(start2, start1)))
@@ -230,40 +228,40 @@ def _purge_create_sequence(code, dir , x, y, w, h, step1):
 
     while start1 < end1:
         stroke_num = not stroke_num
-        stroke = min( end1 - start1 , step1 )
+        stroke = min(end1 - start1, step1)
         start1 = start1 + stroke
         if stroke_num:
-            code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis,end2,calculate_purge(stroke_length))))
+            code.append(
+                gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis, end2, calculate_purge(stroke_length))))
         else:
-            code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis, start2, calculate_purge(stroke_length))))
+            code.append(
+                gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(short_axis, start2, calculate_purge(stroke_length))))
 
-        code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(dir, start1, calculate_purge(stroke))))
-
-
-def dist (x1, y1, x2, y2):
-    return math.sqrt((x1-x2) ** 2 + (y1-y2) ** 2)
+        code.append(gcode.GCodeCommand("G1 {}{:.3f} E{:.4f}".format(main_axis, start1, calculate_purge(stroke))))
 
 
-def clipline( slope ,  left, bottom, right, top, startx ):
+def dist(x1, y1, x2, y2):
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
+
+def clipline(slope, left, bottom, right, top, startx):
     func_x = lambda y: slope * (y - bottom) + startx
     func_y = lambda x: (x - startx) / slope + bottom
-    func_inrange =lambda x, y: (left <= x) and (x <= right) and (bottom <= y) and (y <= top)
+    func_inrange = lambda x, y: (left <= x) and (x <= right) and (bottom <= y) and (y <= top)
 
-    rx = [ func_x(bottom), func_x(top) , left           , right         ]
-    ry = [ bottom        , top         , func_y(left)   , func_y(right) ]
+    rx = [func_x(bottom), func_x(top), left, right]
+    ry = [bottom, top, func_y(left), func_y(right)]
 
-
-    for i in range(3,-1,-1):
-        if not func_inrange(rx[i],ry[i]):
+    for i in range(3, -1, -1):
+        if not func_inrange(rx[i], ry[i]):
             del rx[i]
             del ry[i]
 
     if (len(rx) == 2) and (len(ry) == 2):
         return [[rx[0], ry[0]], [rx[1], ry[1]]]
 
-def _generate_hatch(code, slope , x1, y1, x2, y2 , infill ):
 
+def _generate_hatch(code, slope, x1, y1, x2, y2, infill):
     assert infill > 0, "Infill must be >0"
     assert abs(slope) == 1, "Slope value must be -1 or 1"
 
@@ -278,28 +276,33 @@ def _generate_hatch(code, slope , x1, y1, x2, y2 , infill ):
         last_x = x1
         last_y = y1
         start_x = x1 + step
-        endx = x2 + (y2-y1) - step
-
+        endx = x2 + (y2 - y1) - step
 
     index = 0
 
     code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f}".format(last_x, last_y)))
 
     while start_x < endx:
-        next_points = clipline(slope , x1, y1, x2, y2, start_x)
+        next_points = clipline(slope, x1, y1, x2, y2, start_x)
 
         start_x = start_x + step
         if next_points:
-            if dist(last_x, last_y, next_points[index][0], next_points[index][1]) > dist(last_x, last_y, next_points[1-index][0], next_points[1-index][1]):
-                index = 1-index
+            if dist(last_x, last_y, next_points[index][0], next_points[index][1]) > dist(last_x, last_y,
+                                                                                         next_points[1 - index][0],
+                                                                                         next_points[1 - index][1]):
+                index = 1 - index
 
-                code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
-                                                     dist(last_x,last_y,next_points[index][0], next_points[index][1] ))))
+                code.append(
+                    gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
+                                                                          dist(last_x, last_y, next_points[index][0],
+                                                                               next_points[index][1]))))
                 last_x = next_points[index][0]
                 last_y = next_points[index][1]
-                index = 1-index
-                code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
-                                                    dist(last_x, last_y, next_points[index][0], next_points[index][1]))))
+                index = 1 - index
+                code.append(
+                    gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
+                                                                          dist(last_x, last_y, next_points[index][0],
+                                                                               next_points[index][1]))))
                 last_x = next_points[index][0]
                 last_y = next_points[index][1]
 
@@ -352,20 +355,22 @@ def _purge_update_sequence_index(purgelength):
         if v.purgelayer > len(v.layer_purge_structure):
             current_purge_form = PURGE_SOLID
         else:
-            current_purge_form = v.layer_purge_structure[v.purgelayer-1]
+            current_purge_form = v.layer_purge_structure[v.purgelayer - 1]
 
         lastpos_x = float(v.purge_minx)
         lastpos_y = float(v.purge_miny)
 
         if purgelength > 0:
-            v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer  * v.layer_height))
+            v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
             v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
+
 
 def _purge_get_nextcommand_in_sequence():
     if current_purge_form == PURGE_SOLID:
         return solidlayer[current_purge_index]
     else:
         return emptylayer[current_purge_index]
+
 
 def _purge_generate_tower_brim(x, y, w, h):
     global brimlayer, last_brim_x, last_brim_y
@@ -390,10 +395,12 @@ def _purge_generate_tower_brim(x, y, w, h):
     last_brim_x = x
     last_brim_y = y
 
+
 tmp_pos_x = 0
 tmp_pos_y = 0
-tmpe     = 0
+tmpe = 0
 intermediate = False
+
 
 def purge_generate_sequence(purgelength):
     global last_posx, last_posy, tmp_pos_x, tmp_pos_y, intermediate, tmpe
@@ -406,15 +413,15 @@ def purge_generate_sequence(purgelength):
 
     actual = 0
 
-    pdelta = v.current_position_z - v.purgelayer  * v.layer_height
+    p_delta = v.current_position_z - v.purgelayer * v.layer_height
 
     v.output_code.append("; --------------------------------------------------\n")
     v.output_code.append("; --- P2PP WIPE SEQUENCE START  FOR {:5.2f}mm\n".format(purgelength))
-    v.output_code.append("; --- DELTA = {:.2f}\n".format(pdelta))
+    v.output_code.append("; --- DELTA = {:.2f}\n".format(p_delta))
     v.output_code.append("; --------------------------------------------------\n")
 
-    v.maxdelta = max(v.maxdelta , pdelta)
-    v.mindelta = min(v.mindelta , pdelta)
+    v.maxdelta = max(v.maxdelta, p_delta)
+    v.mindelta = min(v.mindelta, p_delta)
 
     if not last_posx:
         last_posx = float(v.purge_minx)
@@ -422,7 +429,7 @@ def purge_generate_sequence(purgelength):
         last_posy = float(v.purge_miny)
 
     v.output_code.append("G1 X{:.3f} Y{:.3f} F{}\n".format(last_posx, last_posy, v.wipe_feedrate))
-    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer  * v.layer_height))
+    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
     v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 
     # generate wipe code
@@ -432,12 +439,13 @@ def purge_generate_sequence(purgelength):
 
             next_command = _purge_get_nextcommand_in_sequence()
 
-            while not next_command.E or not next_command.E>0:
+            while not next_command.E or not next_command.E > 0:
                 next_command.issue_command()
                 _purge_update_sequence_index(purgelength)
                 next_command = _purge_get_nextcommand_in_sequence()
         else:
-            next_command = gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f} ;inter resume ".format(tmp_pos_x, tmp_pos_y, tmpe))
+            next_command = gcode.GCodeCommand(
+                "G1 X{:.3f} Y{:.3f} E{:.4f} ;inter resume ".format(tmp_pos_x, tmp_pos_y, tmpe))
 
         intermediate = False
 
@@ -448,11 +456,13 @@ def purge_generate_sequence(purgelength):
 
             last_posx = last_posx + (tmp_pos_x - last_posx) * (purgelength / float(next_command.E))
             last_posy = last_posy + (tmp_pos_y - last_posy) * (purgelength / float(next_command.E))
-            tmpe = float(next_command.E )- purgelength
+            tmpe = float(next_command.E) - purgelength
             intermediate = True
             actual += purgelength
 
-            gcode.GCodeCommand("G1 X{:.3f} Y{:.3f} E{:.4f}   ;inter {:.3f} {:.3f}".format(last_posx, last_posy, purgelength, tmp_pos_x, tmp_pos_y)).issue_command()
+            gcode.GCodeCommand(
+                "G1 X{:.3f} Y{:.3f} E{:.4f}   ;inter {:.3f} {:.3f}".format(last_posx, last_posy, purgelength, tmp_pos_x,
+                                                                           tmp_pos_y)).issue_command()
             purgelength = 0
 
         else:
@@ -465,9 +475,13 @@ def purge_generate_sequence(purgelength):
         if not intermediate:
             _purge_update_sequence_index(purgelength)
 
+        # if v.toolchange > 0 and v.total_extrusion >= v.toolchangepos:
+        #     gcode.GCodeCommand( "; process Input {}".format(v.toolchange)).issue_command()
+        #     v.toolchange = 0
+
     # return to print height
     v.output_code.append("; -------------------------------------\n")
-    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z+0.4))
+    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z + 0.4))
     v.output_code.append("G0 X{:.3f} Y{:.3f} F{}\n".format(keep_x, keep_y, v.wipe_feedrate))
     v.output_code.append("; --- P2PP WIPE SEQUENCE END DONE\n")
     v.output_code.append("; -------------------------------------\n")
@@ -475,5 +489,3 @@ def purge_generate_sequence(purgelength):
     # if we extruded more we need to account for that in the total count
 
     return actual
-
-
