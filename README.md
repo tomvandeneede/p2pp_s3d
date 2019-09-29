@@ -37,7 +37,7 @@ graphical interface to allow the user to position the tower, this needs to be do
 5. Run the script without any parameters.  This will return the full path to the script that you can use in the post processing script box
 under the scripts tab  you will need to add the following parameter @[output_filepath]
 6. Go to the scripts tab and locate the Starting Script sub tab.   Here you will do the big chunck of p2pp configuration:
-
+7. Make sure that the Autoconfiguration for print settings are the same for ALL layers.   S3D will generate incomplete header information in case of mixing
 
 Here is a sample section with some explanation of this configuration
 
@@ -50,10 +50,10 @@ Here is a sample section with some explanation of this configuration
     ;P2PP LINEARPINGLENGTH=350
     
     ; tool purge length information for p2pp
-    ;P2PP TOOL_0=PLA:[80,90]
-    ;P2PP TOOL_1=PLA:[80, 100]
-    ;P2PP TOOL_2=PLA:[80,120]
-    ;P2PP TOOL_3=PLA:[80,130]
+    ;P2PP TOOL_0=PLA:[80;90]
+    ;P2PP TOOL_1=PLA:[80;100]
+    ;P2PP TOOL_2=PLA:[80;120]
+    ;P2PP TOOL_3=PLA:[80;130]
     
     ; Material splicing profile information
     ;P2PP MATERIAL_DEFAULT_0_0_0
@@ -66,10 +66,10 @@ Here is a sample section with some explanation of this configuration
 links the gcode to a specific printer that is setup within your Palette 2.  
 The ID has to ba a seauence of 16 characters from the following character set [0-9a-f]
 
->**TOOL_n=FIL:[unload,load]**  [MANDATORY]
+>**TOOL_n=FIL:[unload;load]**  [MANDATORY]
 the TOOL command provides basic info on the filament used.   One line must be issues for EACH of the inputs used.
 The first parameter n specifies the input.  n ranges from  0 to 3. 
-The second pqrameter specifies the type of filament.  The abbreviation here MUST be the same abbreviation of filament type
+The second parameter specifies the type of filament.  The abbreviation here MUST be the same abbreviation of filament type
 used in the MATERIAL descriptions!  Examples for filament type are PLA, PETG, PVA, ABS, HIPS, ....
 Behind the colon there are 2 parameters separated bij a coma.  Both are INTEGER values.  The first describes the unload length
 to be used when switching to a next value... Higher values indicate stronger filament so more bleeding into the next.  The second value 
