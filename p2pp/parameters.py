@@ -115,7 +115,6 @@ def p2pp_command(command, parameter):
     if command == "LAYERONEWIPESPEED":
         v.wipe_feedrate1 = int(parameter)
 
-
     if command == "TOWERDELTA":
         v.towerdelta = float(parameter)
 
