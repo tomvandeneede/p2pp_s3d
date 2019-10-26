@@ -112,7 +112,7 @@ def p2pp_command(command, parameter):
     if command == "WIPESPEED":
         v.wipe_feedrate = int(parameter)
 
-    if command == "LAYERONEWIPESPEED"
+    if command == "LAYERONEWIPESPEED":
         v.wipe_feedrate1 = int(parameter)
 
 
