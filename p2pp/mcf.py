@@ -16,11 +16,11 @@ import p2pp.parameters as parameters
 
 def process_tool_change(gc):
     if not gc:
-        tmp = {"Layer": 999, "Tool": int(v.previous_tool), "E": v.total_extrusion}
+        tmp = {"Layer": 999, "Tool": int(v.current_tool), "E": v.total_extrusion}
         v.toolchangeinfo.append(tmp)
         return
 
-    tmp = {"Layer": gc.layer, "Tool": int(v.previous_tool), "E": v.total_extrusion}
+    tmp = {"Layer": gc.layer, "Tool": int(v.current_tool), "E": v.total_extrusion}
 
     new_tool = int(gc.command[1])
 
