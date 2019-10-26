@@ -40,7 +40,7 @@ def omegaheader():
 
     for i in range(4):
         if v.toolsused[i]:
-            toolinfo[i] = "D{}_input{}_{}".format(materials[v.filament_type[i]], i,v.filament_type[i])
+            toolinfo[i] = "D{}000000input{}_{}".format(materials[v.filament_type[i]], i,v.filament_type[i])
 
     header.append('O25 {} {} {} {}'.format(toolinfo[0],toolinfo[1],toolinfo[2],toolinfo[3]) + "\n")
     header.append('O26 ' + hexify_short(len(v.toolchangeinfo)) + "\n")
@@ -50,7 +50,6 @@ def omegaheader():
 
     previous_change = 0
     header.append('O29 ' + hexify_short(0) + "\n")
-    header.append("\n; P2 Tool change information\n")
 
     v.processcomments.append("\n")
     v.processcomments.append(";------------------------------------\n")
@@ -75,7 +74,6 @@ def omegaheader():
         v.processcomments.append(";Tool {} Length {:.2f}mm\n".format(v.toolchangeinfo[i]["Tool"], nextpos-previoussplice))
         previoussplice = nextpos
 
-
     v.processcomments.append("\n")
 
     v.processcomments.append("\n")
@@ -88,7 +86,6 @@ def omegaheader():
 
     v.processcomments.append("\n")
 
-    header.append("\n; P2 Splicing algorithms\n")
     if not "DEFAULT" in v.algorithm.keys():
         v.algorithm['DEFAULT'] = (0,0,0)
 
@@ -109,10 +106,9 @@ def omegaheader():
 
             header.append("O32 D{}{} {}\n".format(materials[fils[0]],materials[fils[1]],process))
 
-    header.append("\n")
     header.append("O1 D{} {}\n"
                   .format("_S3D_P2PP_PRINT_", hexify_long(int(v.total_extrusion + v.extra_extrusion_at_end))))
-    header.append("\n")
+    header.append("M0\nT0\n\n")
 
     header = header + v.processcomments
     header.append(";--- END OF P2 HEADER ---\n")
