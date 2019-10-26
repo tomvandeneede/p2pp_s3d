@@ -52,7 +52,8 @@ rawfile = []
 gcodes = []
 output_code = []
 
-wipe_feedrate = 3000
+wipe_feedrate = 3000        #default is 50mm/s
+wipe_feedrate1 = 1200       #default is 20mm/s
 purgelayer = 1
 
 layer_height = None

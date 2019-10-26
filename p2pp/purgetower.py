@@ -363,7 +363,7 @@ def _purge_update_sequence_index(purgelength):
         if purgelength > 0:
             v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
             if v.purgelayer == 1:
-                v.output_code.append("G1 F{}\n".format(min(1200, v.wipe_feedrate)))
+                v.output_code.append("G1 F{}\n".format(v.wipe_feedrate1))
             else:
                 v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 
@@ -434,7 +434,7 @@ def purge_generate_sequence(purgelength):
     v.output_code.append("G1 X{:.3f} Y{:.3f} F{}\n".format(last_posx, last_posy, v.wipe_feedrate))
     v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
     if v.purgelayer == 1:
-        v.output_code.append("G1 F{}\n".format(min(1200,v.wipe_feedrate)))
+        v.output_code.append("G1 F{}\n".format(v.wipe_feedrate1))
     else:
         v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
 

@@ -109,6 +109,13 @@ def p2pp_command(command, parameter):
         v.pinglength = float(parameter)
         v.pingincrease = 1
 
+    if command == "WIPESPEED":
+        v.wipe_feedrate = int(parameter)
+
+    if command == "LAYERONEWIPESPEED"
+        v.wipe_feedrate1 = int(parameter)
+
+
     if command == "TOWERDELTA":
         v.towerdelta = float(parameter)
 
