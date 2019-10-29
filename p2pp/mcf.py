@@ -22,6 +22,7 @@ def process_tool_change(gc):
 
     tmp = {"Layer": gc.layer, "Tool": int(v.current_tool), "E": v.total_extrusion}
 
+
     new_tool = int(gc.command[1])
 
     if new_tool == v.current_tool:
@@ -97,7 +98,6 @@ def process_gcode():
 
         toolchange = tmp.is_toolchange()
         if toolchange in [0, 1, 2, 3]:
-
             # keep track of the tools used
             if not v.toolsused[toolchange]:
                 if not v.filament_type[toolchange]:
@@ -112,7 +112,6 @@ def process_gcode():
                     v.layer_purge_volume[-1] += purgetower.calc_purge_length(v.parse_curtool, toolchange)
                     v.parse_prevtool = v.parse_curtool
                     v.parse_curtool = toolchange
-
             else:
                 v.parse_curtool = v.parse_prevtool = toolchange
 
@@ -142,10 +141,15 @@ def process_gcode():
     line_idx = 0
     line_count = len(v.gcodes)
     layer = -1
+    countje =0
     for g in v.gcodes:
         if g.layer != layer:
             layer = g.layer
             purgetower.checkfill(g.layer, 5)
+
+        countje += 1
+        if countje < 1000:
+            print("{}  - {}".format(countje, g.__str__().strip()))
 
         line_idx += 1
         gui.setprogress(50 + int(50 * line_idx / line_count))
@@ -160,6 +164,7 @@ def process_gcode():
             continue  # no further mcf required
 
         if g.command in ["T0", "T1", "T2", "T3"]:
+            gcode.GCodeCommand(";---- {} TOOLCHANGE -----".format(g.command)).issue_command()
             process_tool_change(g)
             g.issue_command()
             continue  # no further mcf required

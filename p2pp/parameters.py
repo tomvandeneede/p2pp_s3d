@@ -96,8 +96,10 @@ def parse_comment(line):
         else:
             v.mode = MODE_OTHER
 
-    # if line.startswith("; process Input"):
-    #     return("; ---pr0cess input removed----")
+
+    if line.startswith("; process Input"):
+        v.mode = MODE_OTHER
+
 
     return line
 
