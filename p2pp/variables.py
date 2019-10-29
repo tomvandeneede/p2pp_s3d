@@ -13,6 +13,7 @@ layer_toolchange_count = []
 layer_purge_volume = []
 layer_purge_structure = []
 algooverview = set([])
+retraction = 0.8
 
 mindelta = 999
 maxdelta = -999
@@ -28,7 +29,7 @@ algorithm = {}
 
 processcomments = []
 
-extra_extrusion_at_end = 0
+extra_extrusion_at_end = 150
 spliceoffset = 20
 
 purge_minx = 9999

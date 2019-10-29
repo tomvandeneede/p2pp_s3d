@@ -128,7 +128,7 @@ def process_gcode():
     while not tower_fits:
         purgetower.purge_create_layers(v.purge_minx - 1, v.purge_miny - 1, v.purge_maxx - v.purge_minx + 2,
                                        v.purge_maxy - v.purge_miny + 2)
-        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty)
+        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty, purgetower.sequence_length_fill, 5)
         if not tower_fits:
             purgetower.tower_auto_expand(10)
             expand += 10
@@ -141,7 +141,12 @@ def process_gcode():
 
     line_idx = 0
     line_count = len(v.gcodes)
+    layer = -1
     for g in v.gcodes:
+        if g.layer != layer:
+            layer = g.layer
+            purgetower.checkfill(g.layer, 5)
+
         line_idx += 1
         gui.setprogress(50 + int(50 * line_idx / line_count))
         if g.command in ["M220"]:

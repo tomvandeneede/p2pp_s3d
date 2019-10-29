@@ -18,6 +18,7 @@ brimlayer = []
 
 PURGE_SOLID = 1
 PURGE_EMPTY = 2
+PURGE_FILL  = 3
 
 current_purge_form = PURGE_SOLID
 current_purge_index = 0
@@ -27,6 +28,7 @@ purge_height = 999
 sequence_length_solid = 0
 sequence_length_empty = 0
 sequence_length_brim = 0
+sequence_length_fill = 0
 
 last_posx = None
 last_posy = None
@@ -53,7 +55,7 @@ def filament_length_to_volume(x):
 
 def calculate_purge(movelength):
     volume = ew * v.layer_height * (abs(movelength) + v.layer_height)
-    return filament_volume_to_length(volume)
+    return filament_volume_to_length(volume*1.10)
 
 
 def calc_purge_length(_from, _to):
@@ -77,19 +79,25 @@ def moveintower():
 
 def find_highest_purge(search_for, start_from_layer):
     for idx in range(start_from_layer, 0, -1):
-        if v.layer_purge_structure[idx] == search_for:
+        if v.layer_purge_structure[idx] in search_for:
             return idx
     return None
 
+def reduce_tower():
+    for idx in range(len(v.layer_purge_structure)-1, 0, -1):
+        if v.layer_purge_structure[idx] == PURGE_FILL:
+            v.layer_purge_structure[idx] = 2
+        else:
+            break
 
-def simulate_tower(amount_solid, amount_sparse):
+def simulate_tower(amount_solid, amount_sparse, amount_fill,  maxdelta):
     purge_layer = 0
     totalpurge = 0
 
     ld = amount_solid - amount_sparse
 
     for i in range(len(v.layer_purge_structure)):
-        v.layer_purge_structure[i] = 0
+        v.layer_purge_structure[i] = 3
 
     v.layer_purge_structure[0] = PURGE_SOLID
     purge_layer_left = amount_solid
@@ -98,6 +106,12 @@ def simulate_tower(amount_solid, amount_sparse):
 
         lp = v.layer_purge_volume[i]
         totalpurge += lp
+
+        if ( i - purge_layer ) > maxdelta:
+            purge_layer_left = 0
+            v.layer_purge_structure[purge_layer] = PURGE_FILL
+            purge_layer += 1
+
 
         if lp > purge_layer_left:
 
@@ -118,7 +132,12 @@ def simulate_tower(amount_solid, amount_sparse):
 
             idx = True
             while lp > 0 and idx:
-                idx = find_highest_purge(PURGE_EMPTY, purge_layer - 1)
+                idx = find_highest_purge([PURGE_EMPTY, PURGE_FILL], purge_layer - 1)
+                if v.layer_purge_structure[idx] == PURGE_FILL:
+                    ld = amount_solid - amount_fill
+                else:
+                    ld = amount_solid - amount_sparse
+
                 if idx:
                     v.layer_purge_structure[idx] = PURGE_SOLID
                     if lp > ld:
@@ -130,6 +149,7 @@ def simulate_tower(amount_solid, amount_sparse):
                 return False
         else:
             purge_layer_left -= lp
+
         # print("Layer - {}  purge {}  - Purgelayer {} - Delta {} -  PurgeLeft {} - {} ".format(i,
         #                                                                          v.layer_purge_volume[i],
         #                                                                          purge_layer,
@@ -137,6 +157,8 @@ def simulate_tower(amount_solid, amount_sparse):
         #                                                                          purge_layer_left,
         #                                                                          v.layer_purge_structure[0:purge_layer]
         #        ))
+
+    reduce_tower()
 
     return True
 
@@ -174,11 +196,12 @@ def generate_rectangle(result, x, y, w, h):
 
 
 def _purge_calculate_sequences_length():
-    global sequence_length_solid, sequence_length_empty, sequence_length_brim
+    global sequence_length_solid, sequence_length_empty, sequence_length_brim, sequence_length_fill
 
     sequence_length_solid = 0
     sequence_length_empty = 0
     sequence_length_brim = 0
+    sequence_length_fill = 0
 
     for i in solidlayer:
         if i.E:
@@ -191,6 +214,10 @@ def _purge_calculate_sequences_length():
     for i in brimlayer:
         if i.E:
             sequence_length_brim += i.E
+
+    for i in filllayer:
+        if i.E:
+            sequence_length_fill += i.E
 
 
 def _calculate_filling_box(x, y, w, h):
@@ -214,6 +241,7 @@ def _purge_create_sequence(code, main_axis, x, y, w, h, step1):
     start2 = offset_y - ew * 0.15
     end2 = offset_y + ch + ew * 0.15
 
+
     if main_axis == "Y":
         # start1, end1, start2, end2 = start2, end2, start1, end1
         short_axis = "X"
@@ -221,6 +249,7 @@ def _purge_create_sequence(code, main_axis, x, y, w, h, step1):
     else:
         short_axis = "Y"
         code.append(gcode.GCodeCommand("G1 X{:.3f} Y{:.3f}".format(start1, start2)))
+
 
     stroke_length = abs(end2 - start2)
 
@@ -261,7 +290,7 @@ def clipline(slope, left, bottom, right, top, startx):
         return [[rx[0], ry[0]], [rx[1], ry[1]]]
 
 
-def _generate_hatch(code, slope, x1, y1, x2, y2, infill):
+def _purge_generate_hatch(code, slope, x1, y1, x2, y2, infill):
     assert infill > 0, "Infill must be >0"
     assert abs(slope) == 1, "Slope value must be -1 or 1"
 
@@ -283,6 +312,7 @@ def _generate_hatch(code, slope, x1, y1, x2, y2, infill):
     code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f}".format(last_x, last_y)))
 
     while start_x < endx:
+
         next_points = clipline(slope, x1, y1, x2, y2, start_x)
 
         start_x = start_x + step
@@ -292,19 +322,18 @@ def _generate_hatch(code, slope, x1, y1, x2, y2, infill):
                                                                                          next_points[1 - index][1]):
                 index = 1 - index
 
-                code.append(
-                    gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
-                                                                          dist(last_x, last_y, next_points[index][0],
-                                                                               next_points[index][1]))))
-                last_x = next_points[index][0]
-                last_y = next_points[index][1]
-                index = 1 - index
-                code.append(
-                    gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
-                                                                          dist(last_x, last_y, next_points[index][0],
-                                                                               next_points[index][1]))))
-                last_x = next_points[index][0]
-                last_y = next_points[index][1]
+            strokelength = dist(last_x, last_y, next_points[index][0],next_points[index][1])
+            code.append(
+                gcode.GCodeCommand( "G1 X{:3f} Y{:.3f} E{:.4f}".format( next_points[index][0], next_points[index][1], calculate_purge(strokelength)) ))
+            last_x = next_points[index][0]
+            last_y = next_points[index][1]
+            index = 1 - index
+
+            strokelength = dist(last_x, last_y, next_points[index][0],next_points[index][1])
+            code.append(
+                gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],calculate_purge(strokelength))))
+            last_x = next_points[index][0]
+            last_y = next_points[index][1]
 
 
 def purge_create_layers(x, y, w, h):
@@ -319,18 +348,26 @@ def purge_create_layers(x, y, w, h):
     w = int(w / ew) * ew
     h = int(h / ew) * ew
 
+    solidlayer.append(gcode.GCodeCommand(";-----------------------"))
     solidlayer.append(gcode.GCodeCommand(";---- SOLID WIPE -------"))
+    solidlayer.append(gcode.GCodeCommand(";-----------------------"))
     generate_rectangle(solidlayer, x, y, w, h)
 
+    emptylayer.append(gcode.GCodeCommand(";-----------------------"))
     emptylayer.append(gcode.GCodeCommand(";---- EMPTY WIPE -------"))
+    emptylayer.append(gcode.GCodeCommand(";-----------------------"))
     generate_rectangle(emptylayer, x, y, w, h)
 
+    filllayer.append(gcode.GCodeCommand(";-----------------------"))
     filllayer.append(gcode.GCodeCommand(";---- FILL LAYER -------"))
+    filllayer.append(gcode.GCodeCommand(";-----------------------"))
     generate_rectangle(filllayer, x, y, w, h)
+
+
 
     _purge_create_sequence(solidlayer, "X", x, y, w, h, ew)
     _purge_create_sequence(emptylayer, "Y", y, x, h, w, 2)
-    _purge_create_sequence(filllayer, "Y", y, x, h, w, 15)
+    _purge_generate_hatch(filllayer, 1, x, y, x+w, y+h, 5)
 
     _purge_generate_tower_brim(x, y, w, h)
 
@@ -340,8 +377,10 @@ def purge_create_layers(x, y, w, h):
 def _purge_number_of_gcodelines():
     if current_purge_form == PURGE_SOLID:
         return len(solidlayer)
-    else:
+    if current_purge_form == PURGE_EMPTY:
         return len(emptylayer)
+    if current_purge_form == PURGE_FILL:
+        return len(filllayer)
 
 
 def _purge_update_sequence_index(purgelength):
@@ -371,9 +410,10 @@ def _purge_update_sequence_index(purgelength):
 def _purge_get_nextcommand_in_sequence():
     if current_purge_form == PURGE_SOLID:
         return solidlayer[current_purge_index]
-    else:
+    if current_purge_form == PURGE_EMPTY:
         return emptylayer[current_purge_index]
-
+    if current_purge_form == PURGE_FILL:
+        return filllayer[current_purge_index]
 
 def _purge_generate_tower_brim(x, y, w, h):
     global brimlayer, last_brim_x, last_brim_y
@@ -404,18 +444,15 @@ tmp_pos_x = 0
 tmp_pos_y = 0
 tmpe = 0
 intermediate = False
+keep_x = 0
+keep_y = 0
 
 
-def purge_generate_sequence(purgelength):
-    global last_posx, last_posy, tmp_pos_x, tmp_pos_y, intermediate, tmpe
-
-    if not purgelength > 0:
-        return 0
+def purge_start_sequence(purgelength):
+    global last_posx, last_posy, tmp_pos_x, tmp_pos_y, intermediate, tmpe, keep_x, keep_y
 
     keep_x = v.current_position_x
     keep_y = v.current_position_y
-
-    actual = 0
 
     p_delta = v.current_position_z - v.purgelayer * v.layer_height
 
@@ -432,12 +469,74 @@ def purge_generate_sequence(purgelength):
     if not last_posy:
         last_posy = float(v.purge_miny)
 
+    v.output_code.append("G1 E{}\n".format(-v.retraction))
     v.output_code.append("G1 X{:.3f} Y{:.3f} F{}\n".format(last_posx, last_posy, v.wipe_feedrate))
     v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
+    v.output_code.append("G1 E{}\n".format(v.retraction))
     if v.purgelayer == 1:
         v.output_code.append("G1 F{}\n".format(v.wipe_feedrate1))
     else:
         v.output_code.append("G1 F{}\n".format(v.wipe_feedrate))
+
+
+def purge_end_sequence():
+    # return to print height
+    v.output_code.append("; -------------------------------------\n")
+    v.output_code.append("G1 E{}\n".format(-v.retraction))
+    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z + 0.4))
+    v.output_code.append("G0 X{:.3f} Y{:.3f} F{}\n".format(keep_x, keep_y, 4000))
+    v.output_code.append("G1 E{}\n".format(v.retraction))
+    v.output_code.append("; --- P2PP WIPE SEQUENCE END DONE\n")
+    v.output_code.append("; -------------------------------------\n")
+
+
+def purge_complete_layer():
+    global last_posx, last_posy,intermediate
+    actual = 0
+
+    if current_purge_index == 0:
+        return 0
+
+    purge_start_sequence(0)
+
+    if intermediate:
+        gcode.GCodeCommand(
+            "G1 X{:.3f} Y{:.3f} E{:.4f} ;inter resume ".format(tmp_pos_x, tmp_pos_y, tmpe)).issue_command()
+    intermediate = False
+
+
+    while current_purge_index:
+        _purge_get_nextcommand_in_sequence().issue_command()
+        _purge_update_sequence_index(0)
+
+    purge_end_sequence()
+
+
+def checkfill(currentlayer, maxdelta):
+    global current_purge_form, current_purge_index
+    if (currentlayer - v.purgelayer)>maxdelta and (currentlayer > v.purgelayer) and (v.layer_purge_structure[v.purgelayer-1] == PURGE_FILL):
+        purge_complete_layer()
+        while (currentlayer > v.purgelayer) and (v.layer_purge_structure[v.purgelayer-1] == PURGE_FILL):
+            v.output_code.append("G1 Z{:.2f} F10800\n".format(v.purgelayer * v.layer_height))
+            v.output_code.append("G1 F{} F10800\n".format(v.wipe_feedrate))
+            for i in filllayer:
+                i.issue_command()
+            v.purgelayer += 1
+
+        purge_end_sequence()
+        current_purge_index = _purge_number_of_gcodelines()-1
+
+
+def purge_generate_sequence(purgelength):
+    global last_posx, last_posy, tmp_pos_x, tmp_pos_y, intermediate, tmpe
+
+
+    if not purgelength > 0:
+        return 0
+
+    actual = 0
+
+    purge_start_sequence(purgelength)
 
     # generate wipe code
     while purgelength > 1:
@@ -482,16 +581,7 @@ def purge_generate_sequence(purgelength):
         if not intermediate:
             _purge_update_sequence_index(purgelength)
 
-        # if v.toolchange > 0 and v.total_extrusion >= v.toolchangepos:
-        #     gcode.GCodeCommand( "; process Input {}".format(v.toolchange)).issue_command()
-        #     v.toolchange = 0
-
-    # return to print height
-    v.output_code.append("; -------------------------------------\n")
-    v.output_code.append("G1 Z{:.2f} F10800\n".format(v.current_position_z + 0.4))
-    v.output_code.append("G0 X{:.3f} Y{:.3f} F{}\n".format(keep_x, keep_y, v.wipe_feedrate))
-    v.output_code.append("; --- P2PP WIPE SEQUENCE END DONE\n")
-    v.output_code.append("; -------------------------------------\n")
+    purge_end_sequence()
 
     # if we extruded more we need to account for that in the total count
 
