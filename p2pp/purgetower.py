@@ -21,7 +21,7 @@ PURGE_EMPTY = 2
 PURGE_FILL  = 3
 
 current_purge_form = PURGE_SOLID
-current_purge_index = 0
+current_purge_index = 1
 purge_width = 999
 purge_height = 999
 
@@ -133,6 +133,9 @@ def simulate_tower(amount_solid, amount_sparse, amount_fill,  maxdelta):
             idx = True
             while lp > 0 and idx:
                 idx = find_highest_purge([PURGE_EMPTY, PURGE_FILL], purge_layer - 1)
+
+                if not idx:     # no layer found we can increase
+                    return False
                 if v.layer_purge_structure[idx] == PURGE_FILL:
                     ld = amount_solid - amount_fill
                 else:

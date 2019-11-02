@@ -124,6 +124,9 @@ def p2pp_command(command, parameter):
         v.printerid = parameter
         gui.set_printer_id(v.printerid)
 
+    if command == "AUTOTOWER":
+        v.autotower = True
+
     if command == "EXTRAENDFILAMENT":
         v.extra_extrusion_at_end = float(parameter)
 

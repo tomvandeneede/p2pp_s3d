@@ -12,6 +12,7 @@ import p2pp.gui as gui
 from p2pp.logging import error, warning, comment
 from p2pp.omega import omegaheader
 import p2pp.parameters as parameters
+import p2pp.autotower as autotower
 
 
 def process_tool_change(gc):
@@ -122,18 +123,52 @@ def process_gcode():
 
     comment("Maximum purge needed per layer: {}mm".format(max(v.layer_purge_volume)))
 
-    expand = 0
-    tower_fits = False
-    while not tower_fits:
-        purgetower.purge_create_layers(v.purge_minx - 1, v.purge_miny - 1, v.purge_maxx - v.purge_minx + 2,
-                                       v.purge_maxy - v.purge_miny + 2)
-        tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty, purgetower.sequence_length_fill, 5)
-        if not tower_fits:
-            purgetower.tower_auto_expand(10)
-            expand += 10
+    if v.autotower:
+        autotower.init_autotower()
+        _x = 0.0
+        _y = 0.0
+        for g in v.gcodes:
 
-    if expand > 0:
-        warning("Tower expanded by {}mm".format(expand))
+            if g.is_movement_command():
+                _ux = g.get_parameter("X", _x)
+                _uy = g.get_parameter("Y", _y)
+                _ue = g.get_parameter("E", 0)
+
+                if _ue > 0:
+                    autotower.filament_mark(_x, _y, _ux, _uy)
+                _x = _ux
+                _y = _uy
+
+        autotower.calculate_purgevolume()
+        tower_fits = False
+        while not tower_fits:
+            purgetower.purge_create_layers(autotower.purge_minx - 1, autotower.purge_miny - 1, autotower.purge_maxx - autotower.purge_minx + 2,
+                                           autotower.purge_maxy - autotower.purge_miny + 2)
+            tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty,
+                                                   purgetower.sequence_length_fill, 5)
+            if not tower_fits:
+                if not autotower.tower_expand():
+                    error("COULD NOT GENERATE SUITABLE TOWER")
+                    tower_fits = True
+
+        v.purge_minx = autotower.purge_minx
+        v.purge_miny = autotower.purge_miny
+        v.purge_maxx = autotower.purge_maxx
+        v.purge_maxy = autotower.purge_maxy
+
+    else:
+        expand = 0
+        tower_fits = False
+        while not tower_fits:
+            purgetower.purge_create_layers(v.purge_minx - 1, v.purge_miny - 1, v.purge_maxx - v.purge_minx + 2,
+                                           v.purge_maxy - v.purge_miny + 2)
+            tower_fits = purgetower.simulate_tower(purgetower.sequence_length_solid, purgetower.sequence_length_empty, purgetower.sequence_length_fill, 5)
+            if not tower_fits:
+                purgetower.tower_auto_expand(10)
+                expand += 10
+
+        if expand > 0:
+            warning("Tower expanded by {}mm".format(expand))
 
     comment('Calculated purge volume : {:.3f},{:.3f} -> {:.3f},{:.3f}'.format(v.purge_minx, v.purge_miny, v.purge_maxx,
                                                                               v.purge_maxy))
@@ -141,15 +176,10 @@ def process_gcode():
     line_idx = 0
     line_count = len(v.gcodes)
     layer = -1
-    countje =0
     for g in v.gcodes:
         if g.layer != layer:
             layer = g.layer
             purgetower.checkfill(g.layer, 5)
-
-        countje += 1
-        if countje < 1000:
-            print("{}  - {}".format(countje, g.__str__().strip()))
 
         line_idx += 1
         gui.setprogress(50 + int(50 * line_idx / line_count))

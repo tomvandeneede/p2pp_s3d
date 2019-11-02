@@ -15,6 +15,8 @@ layer_purge_structure = []
 algooverview = set([])
 retraction = 0.8
 
+autotower = False
+
 mindelta = 999
 maxdelta = -999
 
