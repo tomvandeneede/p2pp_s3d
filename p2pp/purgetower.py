@@ -55,7 +55,7 @@ def filament_length_to_volume(x):
 
 def calculate_purge(movelength):
     volume = ew * v.layer_height * (abs(movelength) + v.layer_height)
-    return filament_volume_to_length(volume*1.10)
+    return filament_volume_to_length(volume*1.05)
 
 
 def calc_purge_length(_from, _to):
@@ -362,15 +362,16 @@ def purge_create_layers(x, y, w, h):
     generate_rectangle(emptylayer, x, y, w, h)
 
     filllayer.append(gcode.GCodeCommand(";-----------------------"))
-    filllayer.append(gcode.GCodeCommand(";---- FILL LAYER -------"))
+    filllayer.append(gcode.GCodeCommand(";---- FILL WIPE  -------"))
     filllayer.append(gcode.GCodeCommand(";-----------------------"))
     generate_rectangle(filllayer, x, y, w, h)
 
 
 
+
     _purge_create_sequence(solidlayer, "X", x, y, w, h, ew)
     _purge_create_sequence(emptylayer, "Y", y, x, h, w, 2)
-    _purge_generate_hatch(filllayer, 1, x, y, x+w, y+h, 5)
+    _purge_generate_hatch(filllayer, 1, x+1.85*ew, y+1.85*ew, x+w-1.85*ew, y+h-1.85*ew, 5)
 
     _purge_generate_tower_brim(x, y, w, h)
 

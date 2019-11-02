@@ -127,6 +127,9 @@ def p2pp_command(command, parameter):
     if command == "AUTOTOWER":
         v.autotower = True
 
+    if command == "MAXTOWERDELTA":
+        v.towerdelta = float(parameter)
+
     if command == "EXTRAENDFILAMENT":
         v.extra_extrusion_at_end = float(parameter)
 

@@ -16,6 +16,7 @@ algooverview = set([])
 retraction = 0.8
 
 autotower = False
+maxtowerdelta = 1.0
 
 mindelta = 999
 maxdelta = -999

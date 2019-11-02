@@ -11,14 +11,17 @@ from p2pp.formatnumbers import hexify_float
 RELATIVE = True
 ABSOLUTE = False
 
+_tool = 0
 
 class GCodeCommand:
+
     command = None
     parameters = {}
     comment = None
     flags = []
     layer = 0
     layerz = 0
+    tool =  0
     codesection = None
     X = None
     Y = None
@@ -26,12 +29,12 @@ class GCodeCommand:
     E = None
 
     def __init__(self, gcode_line):
+        global _tool
         self.command = None
         self.parameters = {}
         self.comment = None
         gcode_line = gcode_line.strip()
         pos = gcode_line.find(";")
-
         if pos != -1:
             self.comment = gcode_line[pos + 1:]
             gcode_line = (gcode_line.split(';')[0]).strip()
@@ -41,6 +44,8 @@ class GCodeCommand:
         if len(fields[0]) > 0:
             self.command = fields[0]
             fields = fields[1:]
+            if self.command[0] == "T":
+                _tool = int(self.command[1:])
 
             while len(fields) > 0:
                 param = fields[0].strip()
@@ -60,6 +65,7 @@ class GCodeCommand:
 
                 fields = fields[1:]
 
+        self.tool = _tool
         self.X = self.get_parameter("X", None)
         self.Y = self.get_parameter("Y", None)
         self.Z = self.get_parameter("Z", None)

@@ -7,8 +7,6 @@ __email__ = 't.vandeneede@pandora.be'
 
 
 import p2pp.variables as v
-from p2pp.logging import *
-from fractions import Fraction
 
 towergrid = []
 
@@ -34,21 +32,21 @@ def calculate_purgevolume():
 
     global purge_minx, purge_miny, purge_maxx, purge_maxy
 
-    gridXsize = len(towergrid)-1
-    gridYsize = len(towergrid[0] ) -1
+    gridXsize = len(towergrid)-2
+    gridYsize = len(towergrid[0])-2
 
     if _bbx_min > gridXsize - _bbx_max:
-        purge_minx = purge_minx + gridsize_mm
-        purge_maxx = min(40 , _bbx_min * gridsize_mm)
+        purge_minx = purge_minx + gridsize_mm * 2
+        purge_maxx = min(40 , _bbx_min * gridsize_mm * 2)
     else:
-        purge_maxx = v.bed_min_x + v.bed_size_x - gridsize_mm
-        purge_minx = purge_maxx - min(40 ,(gridXsize - _bbx_max+1)* gridsize_mm)
+        purge_maxx = v.bed_min_x + v.bed_size_x - gridsize_mm * 2
+        purge_minx = purge_maxx - min(40 ,(gridXsize - _bbx_max+1)* gridsize_mm )
 
     if _bby_min > gridYsize - _bby_max:
-        purge_miny = gridsize_mm
-        purge_maxy = purge_miny+ min(40 , _bby_min * gridsize_mm)
+        purge_miny = gridsize_mm * 2
+        purge_maxy = purge_miny+ min(40 , _bby_min * gridsize_mm * 2)
     else:
-        purge_maxy = v.bed_min_y + v.bed_size_y - gridsize_mm
+        purge_maxy = v.bed_min_y + v.bed_size_y - gridsize_mm * 2
         purge_miny = purge_maxy - min(40 ,(gridYsize - _bby_max+1)* gridsize_mm)
 
 

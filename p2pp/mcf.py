@@ -120,9 +120,8 @@ def process_gcode():
     comment("Tool unload info: " + v.unloadinfo.__str__())
     comment("Tool load info: " + v.loadinfo.__str__())
     comment("Algorithms:" + v.algorithm.__str__())
-
     comment("Maximum purge needed per layer: {}mm".format(max(v.layer_purge_volume)))
-
+    comment("Autotower function active: {}".format(v.autotower))
     if v.autotower:
         autotower.init_autotower()
         _x = 0.0
@@ -179,7 +178,7 @@ def process_gcode():
     for g in v.gcodes:
         if g.layer != layer:
             layer = g.layer
-            purgetower.checkfill(g.layer, 5)
+            purgetower.checkfill(g.layer, v.maxtowerdelta / v.layer_height)
 
         line_idx += 1
         gui.setprogress(50 + int(50 * line_idx / line_count))
