@@ -8,7 +8,7 @@ __email__ = 't.vandeneede@pandora.be'
 # general version info
 MajorVersion = 0
 MinorVersion = 0
-Build = 10
+Build = 11
 
 latest_stable_version = ""
 
