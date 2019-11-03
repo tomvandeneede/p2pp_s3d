@@ -6,9 +6,9 @@ __maintainer__ = 'Tom Van den Eede'
 __email__ = 't.vandeneede@pandora.be'
 
 # general version info
-MajorVersion = 0
+MajorVersion = 1
 MinorVersion = 0
-Build = 12
+Build = 0
 
 latest_stable_version = ""
 
