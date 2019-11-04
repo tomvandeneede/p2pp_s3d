@@ -312,27 +312,63 @@ def _purge_generate_hatch(code, slope, x1, y1, x2, y2, infill):
 
     index = 0
 
-    code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f}".format(last_x, last_y)))
+
+
+    first_move = True
 
     while start_x < endx:
 
         next_points = clipline(slope, x1, y1, x2, y2, start_x)
 
         start_x = start_x + step
+
         if next_points:
             if dist(last_x, last_y, next_points[index][0], next_points[index][1]) > dist(last_x, last_y,
                                                                                          next_points[1 - index][0],
                                                                                          next_points[1 - index][1]):
                 index = 1 - index
 
-            strokelength = dist(last_x, last_y, next_points[index][0],next_points[index][1])
-            code.append(
-                gcode.GCodeCommand( "G1 X{:3f} Y{:.3f} E{:.4f}".format( next_points[index][0], next_points[index][1], calculate_purge(strokelength)) ))
+            if first_move:
+                code.append(gcode.GCodeCommand("G1 X{:3f} Y{:.3f}".format(next_points[index][0], next_points[index][1])))
+                first_move = False
+            else:
+                if last_x != next_points[index][1]:
+                    position = abs(x1 - last_x) > abs(x2 - last_x)
+                    if slope == -1:
+                        position = not position
+
+                    if position:
+                        strokelength = dist(last_x , last_y, next_points[index][0], last_y)
+                        code.append(
+                            gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], last_y,
+                                                                                  calculate_purge(strokelength))))
+
+                        strokelength = dist(next_points[index][0], last_y, next_points[index][0], next_points[index][1])
+                        code.append(
+                            gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0],next_points[index][1] ,
+                                                                                  calculate_purge(strokelength))))
+                    else:
+                        strokelength = dist(last_x, last_y, last_x , next_points[index][1])
+                        code.append(
+                            gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(last_x, next_points[index][1],
+                                                                                  calculate_purge(strokelength))))
+
+                        strokelength = dist(last_x , next_points[index][1], next_points[index][0], next_points[index][1])
+                        code.append(
+                            gcode.GCodeCommand(
+                                "G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],
+                                                                   calculate_purge(strokelength))))
+
+                else:
+                    strokelength = dist(last_x, last_y, next_points[index][0],next_points[index][1])
+                    code.append(
+                        gcode.GCodeCommand( "G1 X{:3f} Y{:.3f} E{:.4f}".format( next_points[index][0], next_points[index][1], calculate_purge(strokelength)) ))
+
             last_x = next_points[index][0]
             last_y = next_points[index][1]
             index = 1 - index
 
-            strokelength = dist(last_x, last_y, next_points[index][0],next_points[index][1])
+            strokelength = dist(last_x, last_y, next_points[index][0], next_points[index][1])
             code.append(
                 gcode.GCodeCommand("G1 X{:3f} Y{:.3f} E{:.4f}".format(next_points[index][0], next_points[index][1],calculate_purge(strokelength))))
             last_x = next_points[index][0]
@@ -365,8 +401,6 @@ def purge_create_layers(x, y, w, h):
     filllayer.append(gcode.GCodeCommand(";---- FILL WIPE  -------"))
     filllayer.append(gcode.GCodeCommand(";-----------------------"))
     generate_rectangle(filllayer, x, y, w, h)
-
-
 
 
     _purge_create_sequence(solidlayer, "X", x, y, w, h, ew)
